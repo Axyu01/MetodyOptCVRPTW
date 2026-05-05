@@ -6,23 +6,28 @@
 class Problem
 {
     public:
-        Problem(std::string);
+        Problem(std::string,int problemSize);
         virtual ~Problem();
         int EstimateSolution(Solution* s);
         int EstimateSolution(Solution* s,int** &CMXJTable,int jobLimit);
         void EstimateSolution(Solution* s,int** &CMJTable,int xj,int m);
-        int M;
-        int J;
-        int INIT_SEED;
-        int UPPER_BOUND;
-        int LOWER_BOUND;
+        int CAPACITY;
+        int MAX_VEHICLES;
+        int SIZE;
+        int PREFFERED_GENOME_SIZE;
+        std::string NAME;
 
-    protected:
-        int** MJTable;
+        double** DistanceMatrix;
+        int* ReadyTime;
+        int* DueDate;
+        int* ServiceTime;
+        int* COORD_X;
+        int* COORD_Y;
+        int* Demand;
 
 
     private:
-        void Load(std::string path);
+        void Load(std::string path,int problemSize);
 };
 
 #endif // PROBLEM_H

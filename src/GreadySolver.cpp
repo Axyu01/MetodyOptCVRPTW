@@ -2,7 +2,7 @@
 #include "iostream"
 using namespace std;
 
-
+/*
 GreadySolver::GreadySolver(Problem* problem)
 {
     _problem = problem;
@@ -71,4 +71,4 @@ Solution* GreadySolver::GetSolution(int startJ)
 
     return s;
 }
-
+*/

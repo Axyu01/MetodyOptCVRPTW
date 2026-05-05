@@ -6,7 +6,7 @@
 SAAlg::SAAlg(Problem* problem,float startTemp)
 {
     this->problem = problem;
-    currentSolution = new Solution(problem->J);
+    currentSolution = new Solution(problem->PREFFERED_GENOME_SIZE);
     currentSolution->eval = problem->EstimateSolution(currentSolution);
     bestSolution = new Solution(currentSolution);
     bestSolution->eval = problem->EstimateSolution(bestSolution);

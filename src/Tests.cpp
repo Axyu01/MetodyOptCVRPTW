@@ -27,7 +27,7 @@ int CROSS_ID)
 {
     //Init Loggers
     string file_name = "out/evo_";
-    file_name += to_string(problem->J)+"_"+to_string(problem->M);
+    file_name += to_string(problem->PREFFERED_GENOME_SIZE);
     if(test_id != "")
         file_name+="_"+test_id;
 
@@ -38,9 +38,9 @@ int CROSS_ID)
     Logger worstLogger(file_name+"_worst.csv");
     Logger avgLogger(file_name+"_avg.csv");
 
-    int budget = problem->J*problem->J*STANDARD_MULTIPLAYER;//*10;
-    if(problem->J >= 500)
-        budget = problem->J*OVER500_MULTIPLAYER;//*100;
+    int budget = problem->SIZE*problem->SIZE*STANDARD_MULTIPLAYER;//*10;
+    if(problem->SIZE >= 500)
+        budget = problem->SIZE*OVER500_MULTIPLAYER;//*100;
 
     int loops = budget/popSize;
 
@@ -95,7 +95,7 @@ void Tests::EvoTest(Problem* problem,int iteration)
 {
     //Init Loggers
     string file_name = "out/evo_";
-    file_name += to_string(problem->J)+"_"+to_string(problem->M)+"_"+to_string(iteration);
+    file_name += problem->NAME+"_"+to_string(iteration);
 
     cout<<endl<<"TEST:"<<file_name<<endl;
 
@@ -103,11 +103,11 @@ void Tests::EvoTest(Problem* problem,int iteration)
     Logger worstLogger(file_name+"_worst.csv");
     Logger avgLogger(file_name+"_avg.csv");
 
-    int budget = problem->J*problem->J*10;
-    if(problem->J >= 100)
-        budget = problem->J*problem->J*10;
-    else if(problem->J >= 500)
-        budget = problem->J*10;
+    int budget = problem->SIZE*problem->SIZE*10;
+    if(problem->SIZE >= 100)
+        budget = problem->SIZE*problem->SIZE*10;
+    else if(problem->SIZE >= 500)
+        budget = problem->SIZE*10;
 
     int popSize = 50;//50,100,500
     int Xp = 70;
@@ -118,7 +118,7 @@ void Tests::EvoTest(Problem* problem,int iteration)
     int CROSS_ID = CrossOps::OX_ID;
 
     //Init Evo alg
-    if(problem->J <= 20)
+    if(problem->SIZE <= 20)
     {
         popSize = 50;
         Xp = 70;
@@ -128,7 +128,7 @@ void Tests::EvoTest(Problem* problem,int iteration)
         MUT_ID = MutationOps::SWAP_ID;//MutationOps::INVERSE_ID;
         CROSS_ID = CrossOps::OX_ID;
     }
-    else if(problem->J <= 100)
+    else if(problem->SIZE <= 100)
     {
         popSize = 50;
         Xp = 70;
@@ -197,7 +197,7 @@ void Tests::EvoParamTest()
     int elitesNum = 1;
     string test_id = "MUT_ID";//"CROSS_ID";//"Mp";//"Xp";//"popSize";
 
-    Problem* problem = new Problem("problems/tai20_10_0.fsp");
+    Problem* problem = new Problem("problems/tai20_10_0.fsp",20);
     popSize = 40;//10,20,40
     Xp = 75;//25,50,75
     Mp = 25;//25,50,75
@@ -208,7 +208,7 @@ void Tests::EvoParamTest()
         EvoTest(problem,test_id +"_"+ to_string(MUT_ID)+"_"+to_string(i),popSize,Xp,Mp,turSize,elitesNum,MUT_ID,CROSS_ID);
     delete problem;
 
-    problem = new Problem("problems/tai100_10_0.fsp");
+    problem = new Problem("problems/tai100_10_0.fsp",100);
     popSize = 50;//50,100,200
     Xp = 75;//25,50,75
     Mp = 25;//25,50,75
@@ -219,7 +219,7 @@ void Tests::EvoParamTest()
         EvoTest(problem,test_id +"_"+ to_string(MUT_ID)+"_"+to_string(i),popSize,Xp,Mp,turSize,elitesNum,MUT_ID,CROSS_ID);
     delete problem;
 
-    problem = new Problem("problems/tai500_20_0.fsp");
+    problem = new Problem("problems/tai500_20_0.fsp",500);
     popSize = 250;//250,500,1000
     Xp = 75;//25,50,75
     Mp = 25;//25,50,75
@@ -240,7 +240,7 @@ void Tests::EvoTest()
     int MUT_ID = MutationOps::SWAP_ID;
     int CROSS_ID = CrossOps::OX_ID;
 
-    Problem* problem = new Problem("problems/tai4_5_0.fsp");
+    Problem* problem = new Problem("problems/tai4_5_0.fsp",4);
     for(int i=0;i<10;i++)
         EvoTest(problem,to_string(i),popSize,Xp,Mp,turSize,elitesNum,MUT_ID,CROSS_ID);
     delete problem;
@@ -254,16 +254,16 @@ void Tests::EvoTest()
     MUT_ID = MutationOps::SWAP_ID;//MutationOps::SWAP_ID,MutationOps::INVERSE_ID
 
 
-    problem = new Problem("problems/tai20_5_0.fsp");
+    problem = new Problem("problems/tai20_5_0.fsp",20);
     for(int i=0;i<10;i++)
         EvoTest(problem,to_string(i),popSize,Xp,Mp,turSize,elitesNum,MUT_ID,CROSS_ID);
     delete problem;
     //return;
-    problem = new Problem("problems/tai20_10_0.fsp");
+    problem = new Problem("problems/tai20_10_0.fsp",20);
     for(int i=0;i<10;i++)
         EvoTest(problem,to_string(i),popSize,Xp,Mp,turSize,elitesNum,MUT_ID,CROSS_ID);
     delete problem;
-    problem = new Problem("problems/tai20_20_0.fsp");
+    problem = new Problem("problems/tai20_20_0.fsp",20);
     for(int i=0;i<10;i++)
         EvoTest(problem,to_string(i),popSize,Xp,Mp,turSize,elitesNum,MUT_ID,CROSS_ID);
     delete problem;
@@ -277,11 +277,11 @@ void Tests::EvoTest()
     MUT_ID = MutationOps::SWAP_ID;//MutationOps::SWAP_ID,MutationOps::INVERSE_ID
 
 
-    problem = new Problem("problems/tai100_10_0.fsp");
+    problem = new Problem("problems/tai100_10_0.fsp",100);
     for(int i=0;i<10;i++)
         EvoTest(problem,to_string(i),popSize,Xp,Mp,turSize,elitesNum,MUT_ID,CROSS_ID);
     delete problem;
-    problem = new Problem("problems/tai100_20_0.fsp");
+    problem = new Problem("problems/tai100_20_0.fsp",100);
     for(int i=0;i<10;i++)
         EvoTest(problem,to_string(i),popSize,Xp,Mp,turSize,elitesNum,MUT_ID,CROSS_ID);
     delete problem;
@@ -295,7 +295,7 @@ void Tests::EvoTest()
     MUT_ID = MutationOps::INVERSE_ID;//MutationOps::SWAP_ID,MutationOps::INVERSE_ID
 
 
-    problem = new Problem("problems/tai500_20_0.fsp");
+    problem = new Problem("problems/tai500_20_0.fsp",500);
     for(int i=0;i<10;i++)
         EvoTest(problem,to_string(i),popSize,Xp,Mp,turSize,elitesNum,MUT_ID,CROSS_ID);
     delete problem;
@@ -308,51 +308,51 @@ void Tests::GreedyTest(Problem* problem)
 {
     //Init Logger
     string file_name = "out/greedy_";
-    file_name += to_string(problem->J)+"_"+to_string(problem->M);
+    file_name += problem->NAME+"_";
 
     cout<<endl<<"TEST:"<<file_name<<endl;
 
     Logger logger(file_name+".csv");
     //Solve greedy J times
-    for(int j=0;j<problem->J;j++)
+    for(int j=0;j<problem->SIZE;j++)
     {
-        if(problem->J == 500)
-            cout<<((float)j/problem->J*100)<<"%"<<endl;
-        GreadySolver solver(problem);
-        Solution* s = solver.GetSolution(j);
-        s->eval = problem->EstimateSolution(s);
-        logger.Log(s);
-        delete s;
+        if(problem->SIZE == 500)
+            cout<<((float)j/problem->SIZE*100)<<"%"<<endl;
+        //GreadySolver solver(problem);
+        //Solution* s = solver.GetSolution(j);
+        //s->eval = problem->EstimateSolution(s);
+        //logger.Log(s);
+       // delete s;
     }
 }
 void Tests::GreedyTest()
 {
-    Problem* problem = new Problem("problems/tai4_5_0.fsp");
+    Problem* problem = new Problem("problems/tai4_5_0.fsp",4);
     GreedyTest(problem);
     delete problem;
 
-    problem = new Problem("problems/tai20_5_0.fsp");
+    problem = new Problem("problems/tai20_5_0.fsp",20);
     GreedyTest(problem);
     delete problem;
     return;
 
-    problem = new Problem("problems/tai20_10_0.fsp");
+    problem = new Problem("problems/tai20_10_0.fsp",20);
     GreedyTest(problem);
     delete problem;
 
-    problem = new Problem("problems/tai20_20_0.fsp");
+    problem = new Problem("problems/tai20_20_0.fsp",20);
     GreedyTest(problem);
     delete problem;
 
-    problem = new Problem("problems/tai100_10_0.fsp");
+    problem = new Problem("problems/tai100_10_0.fsp",100);
     GreedyTest(problem);
     delete problem;
 
-    problem = new Problem("problems/tai100_20_0.fsp");
+    problem = new Problem("problems/tai100_20_0.fsp",100);
     GreedyTest(problem);
     delete problem;
 
-    problem = new Problem("problems/tai500_20_0.fsp");
+    problem = new Problem("problems/tai500_20_0.fsp",500);
     GreedyTest(problem);
     delete problem;
 }
@@ -360,19 +360,19 @@ void Tests::RandomTest(Problem* problem)
 {
     //Init Logger
     string file_name = "out/random_";
-    file_name += to_string(problem->J)+"_"+to_string(problem->M);
+    file_name += problem->NAME;
 
     cout<<endl<<"TEST:"<<file_name<<endl;
 
     Logger logger(file_name+".csv");
     //Generate random solutions
-    int tests = problem->J*problem->J*STANDARD_MULTIPLAYER*10;
-    if(problem->J>=500)
-        tests = problem->J*OVER500_MULTIPLAYER*10;
+    int tests = problem->SIZE*problem->SIZE*STANDARD_MULTIPLAYER*10;
+    if(problem->SIZE>=500)
+        tests = problem->SIZE*OVER500_MULTIPLAYER*10;
     long long int sum = 0;
     for(int i=0;i<tests;i++)
     {
-        Solution* s = new Solution(problem->J);
+        Solution* s = new Solution(problem->PREFFERED_GENOME_SIZE);
         s->eval = problem->EstimateSolution(s);
         sum += s->eval;
         logger.Log(s);
@@ -382,31 +382,31 @@ void Tests::RandomTest(Problem* problem)
 }
 void Tests::RandomTest()
 {
-    Problem* problem = new Problem("problems/tai4_5_0.fsp");
+    Problem* problem = new Problem("problems/tai4_5_0.fsp",4);
     RandomTest(problem);
     delete problem;
 
-    problem = new Problem("problems/tai20_5_0.fsp");
+    problem = new Problem("problems/tai20_5_0.fsp",20);
     RandomTest(problem);
     delete problem;
 
-    problem = new Problem("problems/tai20_10_0.fsp");
+    problem = new Problem("problems/tai20_10_0.fsp",20);
     RandomTest(problem);
     delete problem;
 
-    problem = new Problem("problems/tai20_20_0.fsp");
+    problem = new Problem("problems/tai20_20_0.fsp",20);
     RandomTest(problem);
     delete problem;
 
-    problem = new Problem("problems/tai100_10_0.fsp");
+    problem = new Problem("problems/tai100_10_0.fsp",100);
     RandomTest(problem);
     delete problem;
 
-    problem = new Problem("problems/tai100_20_0.fsp");
+    problem = new Problem("problems/tai100_20_0.fsp",100);
     RandomTest(problem);
     delete problem;
 
-    problem = new Problem("problems/tai500_20_0.fsp");
+    problem = new Problem("problems/tai500_20_0.fsp",500);
     RandomTest(problem);
     delete problem;
 }
@@ -420,16 +420,16 @@ int MUT_ID)
 {
     //Init Logger
     string file_name = "out/sa_";
-    file_name += to_string(problem->J)+"_"+to_string(problem->M);
+    file_name += problem->NAME;
 
     if(test_id != "")
         file_name+="_"+test_id;
 
     cout<<endl<<"TEST:"<<file_name<<endl;
 
-    int budget = problem->J*problem->J*STANDARD_MULTIPLAYER;//*10;
-    if(problem->J>=500)
-        budget = problem->J*OVER500_MULTIPLAYER;//*100;
+    int budget = problem->SIZE*problem->SIZE*STANDARD_MULTIPLAYER;//*10;
+    if(problem->SIZE>=500)
+        budget = problem->SIZE*OVER500_MULTIPLAYER;//*100;
 
     Logger logger(file_name+".csv");
     SAAlg sa(problem,startTemp);
@@ -458,8 +458,8 @@ void Tests::SAParamTest()
     int budget = 0;
     string test_id = "MUT_ID";
 
-    Problem* problem = new Problem("problems/tai20_10_0.fsp");
-    budget = problem->J*problem->J*STANDARD_MULTIPLAYER;
+    Problem* problem = new Problem("problems/tai20_10_0.fsp",20);
+    budget = problem->PREFFERED_GENOME_SIZE*problem->PREFFERED_GENOME_SIZE*STANDARD_MULTIPLAYER;
     startTemp = 30000;
     coolingFactor = 0.995;//0.95
     tempIterations = 1;//budget/2100;
@@ -471,8 +471,8 @@ void Tests::SAParamTest()
     for(int i=0;i<10;i++)
         SATest(problem,test_id +"_"+ to_string(MUT_ID)+"_"+to_string(i),startTemp,coolingFactor,tempIterations,MUT_ID);
     delete problem;
-    problem = new Problem("problems/tai100_10_0.fsp");
-    budget = problem->J*problem->J*STANDARD_MULTIPLAYER;
+    problem = new Problem("problems/tai100_10_0.fsp",100);
+    budget = problem->PREFFERED_GENOME_SIZE*problem->PREFFERED_GENOME_SIZE*STANDARD_MULTIPLAYER;
     startTemp = 400000;
     coolingFactor = 0.995;//0.95f
     tempIterations = 47;//budget/2100;
@@ -485,8 +485,8 @@ void Tests::SAParamTest()
         SATest(problem,test_id +"_"+ to_string(MUT_ID)+"_"+to_string(i),startTemp,coolingFactor,tempIterations,MUT_ID);
     delete problem;
 
-    problem = new Problem("problems/tai500_20_0.fsp");
-    budget = problem->J*OVER500_MULTIPLAYER;
+    problem = new Problem("problems/tai500_20_0.fsp",500);
+    budget = problem->PREFFERED_GENOME_SIZE*OVER500_MULTIPLAYER;
     startTemp = 7000000;
     coolingFactor = 0.95;
     tempIterations = 23;//budget/2100;
@@ -503,14 +503,14 @@ void Tests::SATest(Problem* problem)
 {
     //Init Logger
     string file_name = "out/sa_";
-    file_name += to_string(problem->J)+"_"+to_string(problem->M);
+    file_name += problem->NAME;
 
     cout<<endl<<"TEST:"<<file_name<<endl;
 
-    int budget = problem->J*problem->J*10;
+    int budget = problem->SIZE*problem->SIZE*10;
 
     Logger logger(file_name+".csv");
-    float startTemp = problem->J*problem->J;
+    float startTemp = problem->SIZE*problem->SIZE;
     SAAlg sa(problem,startTemp);
     sa.coolingFactor = 0.995;
     sa.maxIterations = budget;//problem->J * 1000;
@@ -534,8 +534,8 @@ void Tests::SATest()
     float coolingFactor = 0.95;
     int tempIterations = 1;
     int MUT_ID = MutationOps::SWAP_ID;
-    Problem* problem = new Problem("problems/tai4_5_0.fsp");
-    startTemp = problem->J*problem->J*problem->M*problem->M;
+    Problem* problem = new Problem("problems/tai4_5_0.fsp",4);
+    startTemp = problem->PREFFERED_GENOME_SIZE*problem->PREFFERED_GENOME_SIZE*problem->PREFFERED_GENOME_SIZE;
     for(int i=0;i<10;i++)
         SATest(problem,to_string(i),startTemp,coolingFactor,tempIterations,MUT_ID);
     delete problem;
@@ -546,21 +546,21 @@ void Tests::SATest()
     tempIterations = 1;//budget/2100;
     MUT_ID = MutationOps::INVERSE_ID;
 
-    problem = new Problem("problems/tai20_5_0.fsp");
-    startTemp = problem->J*problem->J*problem->M*problem->M;
+    problem = new Problem("problems/tai20_5_0.fsp",20);
+    startTemp = problem->PREFFERED_GENOME_SIZE*problem->PREFFERED_GENOME_SIZE*problem->PREFFERED_GENOME_SIZE;
     for(int i=0;i<10;i++)
         SATest(problem,to_string(i),startTemp,coolingFactor,tempIterations,MUT_ID);
     delete problem;
     //return;
 
-    problem = new Problem("problems/tai20_10_0.fsp");
-    startTemp = problem->J*problem->J*problem->M*problem->M;
+    problem = new Problem("problems/tai20_10_0.fsp",20);
+    startTemp = problem->PREFFERED_GENOME_SIZE*problem->PREFFERED_GENOME_SIZE*problem->PREFFERED_GENOME_SIZE;
     for(int i=0;i<10;i++)
         SATest(problem,to_string(i),startTemp,coolingFactor,tempIterations,MUT_ID);
     delete problem;
 
-    problem = new Problem("problems/tai20_20_0.fsp");
-    startTemp = problem->J*problem->J*problem->M*problem->M;
+    problem = new Problem("problems/tai20_20_0.fsp",20);
+    startTemp = problem->PREFFERED_GENOME_SIZE*problem->PREFFERED_GENOME_SIZE*problem->PREFFERED_GENOME_SIZE;
     for(int i=0;i<10;i++)
         SATest(problem,to_string(i),startTemp,coolingFactor,tempIterations,MUT_ID);
     delete problem;
@@ -571,14 +571,14 @@ void Tests::SATest()
     tempIterations = 47;//budget/2100;
     MUT_ID = MutationOps::INVERSE_ID;
 
-    problem = new Problem("problems/tai100_10_0.fsp");
-    startTemp = problem->J*problem->J*problem->M*problem->M;
+    problem = new Problem("problems/tai100_10_0.fsp",100);
+    startTemp = problem->PREFFERED_GENOME_SIZE*problem->PREFFERED_GENOME_SIZE*problem->PREFFERED_GENOME_SIZE;
     for(int i=0;i<10;i++)
         SATest(problem,to_string(i),startTemp,coolingFactor,tempIterations,MUT_ID);
     delete problem;
 
-    problem = new Problem("problems/tai100_20_0.fsp");
-    startTemp = problem->J*problem->J*problem->M*problem->M;
+    problem = new Problem("problems/tai100_20_0.fsp",100);
+    startTemp = problem->PREFFERED_GENOME_SIZE*problem->PREFFERED_GENOME_SIZE*problem->PREFFERED_GENOME_SIZE;
     for(int i=0;i<10;i++)
         SATest(problem,to_string(i),startTemp,coolingFactor,tempIterations,MUT_ID);
     delete problem;
@@ -589,8 +589,8 @@ void Tests::SATest()
     tempIterations = 23;//budget/2100;
     MUT_ID = MutationOps::SWAP_ID;
 
-    problem = new Problem("problems/tai500_20_0.fsp");
-    startTemp = problem->J*problem->J*problem->M*problem->M;
+    problem = new Problem("problems/tai500_20_0.fsp",500);
+    startTemp = problem->PREFFERED_GENOME_SIZE*problem->PREFFERED_GENOME_SIZE*problem->PREFFERED_GENOME_SIZE;
     for(int i=0;i<10;i++)
         SATest(problem,to_string(i),startTemp,coolingFactor,tempIterations,MUT_ID);
     delete problem;

@@ -2,153 +2,133 @@
 #include <fstream>
 #include <sstream>
 #include <iostream>
+#include <math.h>
 using namespace std;
-Problem::Problem(string path)
+Problem::Problem(string path,int problemSize)
 {
-    Load(path);
+    Load(path,problemSize);
 }
-
 Problem::~Problem()
 {
-    for(int m=0;m<M;m++)
+    for(int l=0;l<SIZE;l++)
     {
-        delete[] MJTable[m];
+        delete[] DistanceMatrix[l];
     }
-    delete MJTable;
+    delete DistanceMatrix;
+    delete ReadyTime;
+    delete DueDate;
+    delete ServiceTime;
+    delete COORD_X;
+    delete COORD_Y;
+    delete Demand;
 }
-int Problem::EstimateSolution(Solution* s,int** &CMXJTable,int jobLimit)
-{
-    //construct ctable
-    if(CMXJTable == nullptr)
-    {
-        CMXJTable = new int*[M];
-        for(int m = 0;m<M;m++)
-        {
-            CMXJTable[m] = new int[J];
-            for(int j = 0;j<jobLimit;j++)
-            {
-                CMXJTable[m][j] = -1;
-            }
-            for(int j = jobLimit;j<J;j++)
-            {
-                CMXJTable[m][j] = 0;
-            }
-        }
-    }
-    else
-    {
-        for(int m = 0;m<M;m++)
-        {
-            CMXJTable[m][jobLimit-1] = -1;
-        }
-    }
-    //estimate
-    int returnedSum = 0;
-    for(int g = 0;g<J;g++)
-    {
-        EstimateSolution(s,CMXJTable,g,M-1);
-        returnedSum += CMXJTable[M-1][g];
-    }
-
-    return returnedSum;
-}
-
 int Problem::EstimateSolution(Solution* s)
 {
-    int** CMXJTable = nullptr;
-    int returnedSum = EstimateSolution(s,CMXJTable,J);
+    double estimation = 0;
+    int load = 0;
+    double time = 0;
+    int currentNode;
+    int previousNode = 0;
 
-    //Display matrix
-    /*for(int m=0;m<M;m++)
+    for(int i = 0; i<s->size; i++)
     {
-        for(int j=0;j<M;j++)
+        currentNode = s->Genome[i]+1;
+        int demand = 0;
+        if(currentNode > SIZE)
+            currentNode = 0;
+
+        if(currentNode == 0)
         {
-            cout <<CMXJTable[m][j]<<" ";
+            load = 0;
+            time = 0;
         }
-        cout << endl;
-    }*/
+        else
+            demand = Demand[currentNode];
 
-    //destroy ctable
+        if(load + demand > CAPACITY)
+        {
+            estimation += DistanceMatrix[previousNode][0];
+            load = 0;
+            time =0;
+            i--;
+            continue;
+        }
 
-    for(int m=0;m<M;m++)
-    {
-        delete[] CMXJTable[m];
+        load+=demand;
+
+        estimation += DistanceMatrix[previousNode][currentNode];
+        time += DistanceMatrix[previousNode][currentNode];
+        //cout <<"Going from: "<< previousNode <<" to: "<<currentNode<<endl;
+
+        //check for time window and add penalty
+        if(time < ReadyTime[currentNode])
+        {
+                //estimation += ReadyTime[currentNode] - time;
+        }
+        else if(time > DueDate[currentNode])
+        {
+            //estimation += time - DueDate[currentNode];
+        }
+        time += ServiceTime[currentNode];
+
+        previousNode = currentNode;
     }
-    delete CMXJTable;
-
-    return returnedSum;
+    estimation += DistanceMatrix[currentNode][0];
+    //cout <<"Going from: "<< currentNode <<" to: "<<0<<endl;
+    s->eval = estimation;
+    return estimation;
 }
-
-void Problem::EstimateSolution(Solution* s,int** &CMXJTable,int xj,int m)
+void Problem::Load(string path,int problemSize)
 {
-    if(xj == 0 && m == 0)
-    {
-        CMXJTable[m][xj] = MJTable[m][s->Genome[xj]];
-    }
-    else if(xj == 0 && m > 0)
-    {
-        if(CMXJTable[m-1][xj] == -1)
-            EstimateSolution(s,CMXJTable,xj,m-1);
-
-        CMXJTable[m][xj] = CMXJTable[m-1][xj] + MJTable[m][s->Genome[xj]];
-    }
-    else if(xj > 0 && m == 0)
-    {
-        if(CMXJTable[m][xj-1] == -1)
-            EstimateSolution(s,CMXJTable,xj-1,m);
-
-        CMXJTable[m][xj] =CMXJTable[m][xj-1] + MJTable[m][s->Genome[xj]];
-    }
-    else if(xj > 0 && m > 0)
-    {
-        if(CMXJTable[m-1][xj] == -1)
-            EstimateSolution(s,CMXJTable,xj,m-1);
-        if(CMXJTable[m][xj-1] == -1)
-            EstimateSolution(s,CMXJTable,xj-1,m);
-
-        int time1 = CMXJTable[m-1][xj];
-        int time2 = CMXJTable[m][xj-1];
-        int max = time1;
-        if(time2>time1)
-            max = time2;
-        CMXJTable[m][xj] = max + MJTable[m][s->Genome[xj]];
-
-    }
-}
-void Problem::Load(string path)
-{
+    SIZE = problemSize;
     cout << "Loading: " << path << endl;
     ifstream file(path);
 
     string line;
-    bool inLocationSection = false;
-    bool inDemandSection = false;
     int nodeIterator = 0;
 
-    getline(file, line);//not important text line
-
-    getline(file, line);//get info
+    getline(file, line);//Problem name
+    NAME = line;
+    getline(file, line);//nothing
+    getline(file, line);//"VEHICLE"
+    getline(file, line);//"NUMBER     CAPACITY"
+    getline(file, line);//get basic info
     stringstream ss_info(line);
-    ss_info >> J >> M >> INIT_SEED >> LOWER_BOUND >> UPPER_BOUND;
+    ss_info >> MAX_VEHICLES >> CAPACITY;
 
-    getline(file, line);//not important text line
+    PREFFERED_GENOME_SIZE = SIZE+MAX_VEHICLES-1;
 
-    MJTable = new int*[M];
+    getline(file, line);//nothing
+    getline(file, line);//"CUSTOMER"
+    getline(file, line);//"CUST NO.  XCOORD.   YCOORD.    DEMAND   READY TIME  DUE DATE   SERVICE   TIME"
+    getline(file, line);//nothing
 
-    for(int m = 0;m<M;m++)
+    ReadyTime = new int[problemSize+1];
+    DueDate = new int[problemSize+1];
+    ServiceTime = new int[problemSize+1];
+    COORD_X =  new int[problemSize+1];
+    COORD_Y =  new int[problemSize+1];
+    Demand = new int[problemSize+1];
+
+    //getting every location info
+    for(int l = 0;l<problemSize+1;l++)
     {
-        MJTable[m] = new int[J];
-        getline(file, line);//get machine time data
-        stringstream ss_m(line);
-        //cout << endl;
-        for(int j = 0;j<J;j++)
-        {
-            int time;
-            ss_m>>time;
-            MJTable[m][j] = time;
-            //cout << time <<" ";
-        }
+        int CUST_NO;
+        getline(file, line);//get location data
+        stringstream ss_l(line);
+        ss_l>>CUST_NO>>COORD_X[l]>>COORD_Y[l]>>Demand[l]>>ReadyTime[l]>>DueDate[l]>>ServiceTime[l];
     }
 
+    //calculate distance matrix
+    DistanceMatrix  = new double*[problemSize+1];
+    for(int l1 = 0;l1<problemSize+1;l1++)
+    {
+        DistanceMatrix[l1]  = new double[problemSize+1];
+        cout << endl;
+        for(int l2 = 0;l2<problemSize+1;l2++)
+        {
+            DistanceMatrix[l1][l2]=sqrt(pow((COORD_X[l1]-COORD_X[l2]),2)+pow((COORD_Y[l1]-COORD_Y[l2]),2));
+        }
+    }
     file.close();
 }

@@ -20,7 +20,7 @@ void EvoAlg::Init()
     for(int i=0;i<popSize;i++)
     {
         //Random solution
-        population[i] = new Solution(problem->J);
+        population[i] = new Solution(problem->PREFFERED_GENOME_SIZE);
     }
 }
 void EvoAlg::Eval()

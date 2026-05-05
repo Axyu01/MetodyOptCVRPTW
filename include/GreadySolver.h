@@ -2,7 +2,7 @@
 #define GREADYSOLVER_H
 #include "Solution.h"
 #include "Problem.h"
-
+/*
 class GreadySolver
 {
     public:
@@ -15,5 +15,5 @@ class GreadySolver
 
     private:
 };
-
+*/
 #endif // GREADYSOLVER_H

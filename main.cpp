@@ -13,8 +13,8 @@
 using namespace std;
 void test_opt()
 {
-    Problem* problem = new Problem("problems/tai4_5_0.fsp");
-    Solution* s_opt = new Solution(problem->J);
+    Problem* problem = new Problem("problems/tai4_5_0.fsp",5);
+    Solution* s_opt = new Solution(problem->PREFFERED_GENOME_SIZE);
     s_opt->Genome[0] = 0;
     s_opt->Genome[1] = 2;
     s_opt->Genome[2] = 3;
@@ -22,6 +22,7 @@ void test_opt()
     cout << problem->EstimateSolution(s_opt) <<endl;
     s_opt->print();
 }
+/*
 void test_gready_and_operators(Problem* problem)
 {
     GreadySolver* greadySolver = new GreadySolver(problem);
@@ -29,14 +30,15 @@ void test_gready_and_operators(Problem* problem)
     greadySolution->eval = problem->EstimateSolution(greadySolution);
     cout << problem->EstimateSolution(greadySolution) <<endl;
 
-    Solution* s_random = new Solution(problem->J);
+    Solution* s_random = new Solution(problem->PREFFERED_GENOME_SIZE);
 
 
     greadySolution->print();
     s_random->print();
     MutationOps::Inverse(greadySolution)->print();
-    CrossOps::PMX(greadySolution,s_random,problem->J)->print();
+    CrossOps::PMX(greadySolution,s_random,problem->PREFFERED_GENOME_SIZE)->print();
 }
+*/
 void test_evo(Problem* problem)
 {
     int popSize = 33;//50,100,500
@@ -48,9 +50,9 @@ void test_evo(Problem* problem)
     int CROSS_ID = CrossOps::OX_ID;
 
     EvoAlg* evo = new EvoAlg(problem,popSize);
-    int budget = problem->J*problem->J*10;
-    if(problem->J>=500)
-        budget = problem->J*100;
+    int budget = problem->SIZE*problem->SIZE*1000;
+    if(problem->SIZE>=500)
+        budget = problem->SIZE*100;
     evo->Xp = Xp;
     evo->Mp = Mp;
     evo->turSize = turSize;
@@ -63,7 +65,7 @@ void test_evo(Problem* problem)
     evo->GetWorst()->print();
     cout<<endl<<evo->GetAvarage();
     string file_name = "out/evo_";
-    file_name += to_string(problem->J)+"_"+to_string(problem->M);
+    file_name += to_string(problem->PREFFERED_GENOME_SIZE);
 
     //Logger bestLogger(file_name+"_best.csv");
     //Logger worstLogger(file_name+"_worst.csv");
@@ -101,7 +103,7 @@ void test_random(Problem* problem)
     long long int sum = 0;
     for(int i=0;i<tests;i++)
     {
-        Solution* s = new Solution(problem->J);
+        Solution* s = new Solution(problem->PREFFERED_GENOME_SIZE);
         sum += problem->EstimateSolution(s);
         delete s;
     }
@@ -109,12 +111,12 @@ void test_random(Problem* problem)
 }
 void test_sa(Problem* problem)
 {
-    float startTemp = problem->J*problem->J*problem->M*problem->M;
+    float startTemp = problem->PREFFERED_GENOME_SIZE*problem->PREFFERED_GENOME_SIZE*problem->PREFFERED_GENOME_SIZE;
     SAAlg sa(problem,100);
 
-    int budget = problem->J*problem->J*10;
-    if(problem->J>=500)
-        budget = problem->J*100;
+    int budget = problem->PREFFERED_GENOME_SIZE*problem->PREFFERED_GENOME_SIZE*10;
+    if(problem->PREFFERED_GENOME_SIZE>=500)
+        budget = problem->PREFFERED_GENOME_SIZE*100;
 
     sa.coolingFactor = 0.995;
     sa.maxIterations = budget;//problem->J * 1000;
@@ -135,7 +137,15 @@ int main()
 {
     srand(time(0));
 
-    Problem* problem = new Problem("problems/tai100_20_0.fsp");
+    Problem* problem = new Problem("problems/solomon-100/c101.txt",100);
+    Solution* s = new Solution(problem->PREFFERED_GENOME_SIZE);
+    for(int i =0;i<s->size;i++)
+    {
+        s->Genome[i] = i;
+    }
+    problem->EstimateSolution(s);
+    s->print();
+    test_evo(problem);
 
     //test_gready_and_operators(problem);
     //test_random(problem);

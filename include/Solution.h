@@ -10,7 +10,7 @@ class Solution
         virtual ~Solution();
         int* Genome;
         int size;
-        int eval;
+        double eval;
         print();
 
     protected:
