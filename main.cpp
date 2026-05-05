@@ -141,7 +141,7 @@ int main()
     //test_random(problem);
     //test_evo(problem);
     //test_sa(problem);
-    Tests::RandomTest();
+    //Tests::RandomTest();
     //Tests::GreedyTest();
     //Tests::EvoTest();
     //Tests::EvoParamTest();
