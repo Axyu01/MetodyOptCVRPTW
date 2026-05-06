@@ -7,6 +7,7 @@ class Solution
     public:
         Solution(Solution* s);
         Solution(int size);
+        Solution(Solution*s,int size);
         virtual ~Solution();
         int* Genome;
         int size;

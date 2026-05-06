@@ -12,6 +12,7 @@ class EvoAlg
         int popSize = 100;
         int Xp = 70;
         int Mp = 30;
+        int OPTp = 10;
         int turSize = 2;
         int elitesNum = 3;
         int MUT_ID = MutationOps::INVERSE_ID;

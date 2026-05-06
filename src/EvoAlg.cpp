@@ -61,7 +61,9 @@ Solution* EvoAlg::Cross(Solution* P1,Solution* P2)
 }
 Solution* EvoAlg::Mutate(Solution* s)
 {
-    if(MUT_ID == MutationOps::INVERSE_ID)
+    if(rand()%MAX_PROB < OPTp)
+        return MutationOps::OptimizeTracks(problem,s);
+    else if(MUT_ID == MutationOps::INVERSE_ID)
         return MutationOps::Inverse(s);
     else
         return MutationOps::Swap(s,s->size*Xp/MAX_PROB);

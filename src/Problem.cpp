@@ -60,14 +60,14 @@ int Problem::EstimateSolution(Solution* s)
         time += DistanceMatrix[previousNode][currentNode];
         //cout <<"Going from: "<< previousNode <<" to: "<<currentNode<<endl;
 
-        //check for time window and add penalty
+        //check for time window
         if(time < ReadyTime[currentNode])
         {
-                //estimation += ReadyTime[currentNode] - time;
+                time = ReadyTime[currentNode];
         }
-        else if(time > DueDate[currentNode])
+        if(time > DueDate[currentNode])// and add penalty
         {
-            //estimation += time - DueDate[currentNode];
+            estimation += (time - DueDate[currentNode]);
         }
         time += ServiceTime[currentNode];
 

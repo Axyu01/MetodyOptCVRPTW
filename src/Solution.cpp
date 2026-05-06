@@ -40,7 +40,21 @@ Solution::Solution(int size)
         Genome[rand_g] = j;
     }
 }
-
+Solution::Solution(Solution*s,int size)
+{
+    //Copy init
+    Genome = new int[size];
+    for(int g =0;g<s->size && g<size;g++)
+    {
+        Genome[g] = s->Genome[g];
+    }
+    for(int g =s->size;g<size;g++)
+    {
+        Genome[g] = g;
+    }
+    this->size = size;
+    this->eval = s->eval;
+}
 Solution::~Solution()
 {
     delete[] Genome;

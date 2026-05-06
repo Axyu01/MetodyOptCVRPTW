@@ -50,7 +50,7 @@ void test_evo(Problem* problem)
     int CROSS_ID = CrossOps::OX_ID;
 
     EvoAlg* evo = new EvoAlg(problem,popSize);
-    int budget = problem->SIZE*problem->SIZE*1000;
+    int budget = problem->SIZE*problem->SIZE*10;
     if(problem->SIZE>=500)
         budget = problem->SIZE*100;
     evo->Xp = Xp;
@@ -80,8 +80,10 @@ void test_evo(Problem* problem)
         //Debugging
         if(i%100 == 0 && false)
         {
-            cout<<endl<<evo->GetAvarage();
-            evo->GetBest()->print();
+            cout<<endl<<"AVG:"<<evo->GetAvarage();
+            Solution* best = evo->GetBest();
+            best->print();
+            delete best;
         }
         //Logging
         Solution* best = evo->GetBest();
@@ -101,22 +103,31 @@ void test_random(Problem* problem)
 {
     int tests = 10000;
     long long int sum = 0;
+    Solution* best;
     for(int i=0;i<tests;i++)
     {
         Solution* s = new Solution(problem->PREFFERED_GENOME_SIZE);
         sum += problem->EstimateSolution(s);
-        delete s;
+        if(best == nullptr || s->eval < best->eval)
+        {
+            delete best;
+            best = s;
+        }
+        else
+            delete s;
     }
     cout <<"Random avg:"<< sum/tests << endl;
+    best->print();
+    delete best;
 }
 void test_sa(Problem* problem)
 {
     float startTemp = problem->PREFFERED_GENOME_SIZE*problem->PREFFERED_GENOME_SIZE*problem->PREFFERED_GENOME_SIZE;
     SAAlg sa(problem,100);
 
-    int budget = problem->PREFFERED_GENOME_SIZE*problem->PREFFERED_GENOME_SIZE*10;
-    if(problem->PREFFERED_GENOME_SIZE>=500)
-        budget = problem->PREFFERED_GENOME_SIZE*100;
+    int budget = problem->SIZE*problem->SIZE*100;
+    if(problem->SIZE>=500)
+        budget = problem->SIZE*100;
 
     sa.coolingFactor = 0.995;
     sa.maxIterations = budget;//problem->J * 1000;
@@ -138,18 +149,19 @@ int main()
     srand(time(0));
 
     Problem* problem = new Problem("problems/solomon-100/c101.txt",100);
-    Solution* s = new Solution(problem->PREFFERED_GENOME_SIZE);
+    Solution* s = new Solution(problem->SIZE);
     for(int i =0;i<s->size;i++)
     {
         s->Genome[i] = i;
     }
     problem->EstimateSolution(s);
     s->print();
-    test_evo(problem);
+    //Solution* opt = MutationOps::OptimalTrack(problem,s);
+    //opt->print();
 
     //test_gready_and_operators(problem);
     //test_random(problem);
-    //test_evo(problem);
+    test_evo(problem);
     //test_sa(problem);
     //Tests::RandomTest();
     //Tests::GreedyTest();
