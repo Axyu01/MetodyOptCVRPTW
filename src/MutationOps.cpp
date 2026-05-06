@@ -136,7 +136,17 @@ Solution* MutationOps::OptimizeTracks(Problem* problem,Solution* s)
         }
         else
         {
-            tracks[i] = GreadyTrack(problem,tracks[i]);
+            Solution* gready = GreadyTrack(problem,tracks[i]);
+            problem->EstimateSolution(gready);
+            problem->EstimateSolution(tracks[i]);
+            if(tracks[i]->eval<gready->eval)
+            {
+                temp = gready;//will delete gready this way
+            }
+            else
+            {
+                tracks[i] = gready;//will save gready if it is better
+            }
         }
         delete temp;
     }
