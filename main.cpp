@@ -44,6 +44,8 @@ void test_evo(Problem* problem)
     int popSize = 33;//50,100,500
     int Xp = 75;
     int Mp = 25;
+    int REPAIRp = 0;
+    int OPTp = 10;
     int turSize = 2;
     int elitesNum = 1;
     int MUT_ID = MutationOps::SWAP_ID;//MutationOps::INVERSE_ID;
@@ -55,6 +57,8 @@ void test_evo(Problem* problem)
         budget = problem->SIZE*100;
     evo->Xp = Xp;
     evo->Mp = Mp;
+    evo->REPAIRp = REPAIRp;
+    evo->OPTp = OPTp;
     evo->turSize = turSize;
     evo->elitesNum = elitesNum;
     evo->MUT_ID = MUT_ID;

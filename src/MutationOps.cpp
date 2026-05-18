@@ -306,5 +306,118 @@ Solution* MutationOps::OptimalTrack(Problem* problem,Solution* s,int* possibleLo
 }
 Solution* MutationOps::Repair(Problem* problem,Solution* s)
 {
+    return MutationOps::Repair(problem,s,0);
+}
+Solution* MutationOps::Repair(Problem* problem,Solution* s,int correctGenes)
+{
+    //int x;
+    //cin>>x;
+    bool* isGeneRecyclable = FindRecyclableGenes(problem,s);
+    Solution* recycledSolution = new Solution(s);
+    int recycledGene = 0;
+    for(int g=0;g<s->size;g++)
+    {
+        if(isGeneRecyclable[g] == false)
+            recycledSolution->Genome[recycledGene++] = s->Genome[g];
+    }
+    //cout << endl<<"REPAAAAAAAAAAAAAAAAIR!!!!!!!!!  "<<recycledGene;
+    if(recycledGene >=s->size)//The solution is well recycled, return it
+    {
+        delete[] isGeneRecyclable;
+        return recycledSolution;
+    }
+    int correctedGenes = recycledGene;
+    for(int g=0;g<s->size;g++)
+    {
+        if(isGeneRecyclable[g] == true)
+            recycledSolution->Genome[recycledGene++] = s->Genome[g];
+    }
+    if(correctedGenes == correctGenes)//The solution cannot be improved, return it
+    {
+        delete[] isGeneRecyclable;
+        return recycledSolution;
+    }
+    delete[] isGeneRecyclable;
+    //recycledSolution->print();
+    Solution* wellRecycledSolution = Repair(problem,recycledSolution,correctedGenes);//The solution is well recycled, return it
+    delete recycledSolution;
+    return wellRecycledSolution;
+}
+bool* MutationOps::FindRecyclableGenes(Problem* problem,Solution* s)
+{
+    int SIZE = problem->SIZE;
+    int CAPACITY = problem->CAPACITY;
+    bool* isGeneRecyclable = new bool[s->size];
+    for(int i=0;i<s->size;i++)
+    {
+        isGeneRecyclable[i] = false;
+    }
 
+    double estimation = 0;
+    int load = 0;
+    double time = 0;
+    int currentNode;
+    int previousNode = 0;
+
+    for(int i = 0; i<s->size; i++)
+    {
+        currentNode = s->Genome[i]+1;
+        int demand = 0;
+        if(currentNode > SIZE)
+            currentNode = 0;
+
+        if(currentNode == 0)
+        {
+            load = 0;
+            time = 0;
+            if(previousNode == 0)
+            {
+                isGeneRecyclable[i] = true;
+                continue;
+            }
+        }
+        else
+            demand = problem->Demand[currentNode];
+
+        if(load + demand > CAPACITY)
+        {
+            estimation += problem->DistanceMatrix[previousNode][0];
+            load = 0;
+            time =0;
+            previousNode = 0;
+            i--;
+            continue;
+        }
+
+        int timeDelta = problem->DistanceMatrix[previousNode][currentNode];
+
+        //check for time window
+        if(time + timeDelta> problem->DueDate[currentNode])// if late, add gene to recycle and rollback to previous location
+        {
+            isGeneRecyclable[i] = true;
+            continue;
+        }
+        estimation += problem->DistanceMatrix[previousNode][currentNode];
+        time += timeDelta;
+        load+=demand;
+        if(time< problem->ReadyTime[currentNode])
+        {
+                time = problem->ReadyTime[currentNode];
+        }
+        time += problem->ServiceTime[currentNode];
+
+        previousNode = currentNode;
+    }
+    estimation += problem->DistanceMatrix[currentNode][0];
+
+    //Mark all last return genes as not recyclable
+    for(int g=s->size-1;g>=0;g--)
+    {
+        if(s->Genome[g]+1 > SIZE)//found return base token
+            isGeneRecyclable[g] = false;
+        else
+            break;
+    }
+
+    return isGeneRecyclable;
 }

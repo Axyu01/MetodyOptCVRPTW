@@ -61,12 +61,29 @@ Solution* EvoAlg::Cross(Solution* P1,Solution* P2)
 }
 Solution* EvoAlg::Mutate(Solution* s)
 {
-    if(rand()%MAX_PROB < OPTp)
-        return MutationOps::OptimizeTracks(problem,s);
-    else if(MUT_ID == MutationOps::INVERSE_ID)
-        return MutationOps::Inverse(s);
+    Solution* mutatedSolution = s;
+    if(MUT_ID == MutationOps::INVERSE_ID)
+        mutatedSolution = MutationOps::Inverse(s);
     else
-        return MutationOps::Swap(s,s->size*Xp/MAX_PROB);
+        mutatedSolution = MutationOps::Swap(s,s->size*Xp/MAX_PROB);
+    //return mutatedSolution;
+    if(rand()%MAX_PROB < REPAIRp)
+    {
+        //cout <<endl<< "Repair";
+        Solution* repairedSolution =  MutationOps::Repair(problem,mutatedSolution);
+        //cout << endl<< "RepairEnd";
+        if(mutatedSolution != s)
+            delete mutatedSolution;
+        mutatedSolution = repairedSolution;
+    }
+    if(rand()%MAX_PROB < OPTp)
+    {
+        Solution* optimizedSolution =  MutationOps::OptimizeTracks(problem,mutatedSolution);
+        if(mutatedSolution != s)
+            delete mutatedSolution;
+        mutatedSolution = optimizedSolution;
+    }
+    return mutatedSolution;
 }
 Solution* EvoAlg::GetBest()
 {

@@ -15,6 +15,8 @@ class MutationOps
         static Solution* GreadyTrack(Problem* problem,Solution* s);
         static Solution* OptimalTrack(Problem* problem,Solution* s);
         static Solution* Repair(Problem* problem,Solution* s);
+        static Solution* Repair(Problem* problem,Solution* s,int correctGenes);
+        static bool* FindRecyclableGenes(Problem* problem,Solution* s);
         const static int SWAP_ID = 0;
         const static int INVERSE_ID = 1;
 

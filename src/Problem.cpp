@@ -50,6 +50,7 @@ int Problem::EstimateSolution(Solution* s)
             estimation += DistanceMatrix[previousNode][0];
             load = 0;
             time =0;
+            previousNode = 0;
             i--;
             continue;
         }
