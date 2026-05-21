@@ -6,14 +6,7 @@
 #include "CrossOps.h"
 #include "GreadySolver.h"
 #include "SAAlg.h"
-Tests::Tests()
-{
-    //ctor
-}
-Tests::~Tests()
-{
-    //dtor
-}
+
 void Tests::EvoTest(
 Problem* problem,
 std::string test_id,

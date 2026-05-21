@@ -8,8 +8,8 @@
 #include "MutationOps.h"
 #include "EvoAlg.h"
 #include "Logger.h"
-#include "Tests.h"
 #include "SAAlg.h"
+#include "EVOTest.h"
 using namespace std;
 void test_opt()
 {
@@ -22,25 +22,9 @@ void test_opt()
     cout << problem->EstimateSolution(s_opt) <<endl;
     s_opt->print();
 }
-/*
-void test_gready_and_operators(Problem* problem)
-{
-    GreadySolver* greadySolver = new GreadySolver(problem);
-    Solution* greadySolution = greadySolver->GetSolution(0);
-    greadySolution->eval = problem->EstimateSolution(greadySolution);
-    cout << problem->EstimateSolution(greadySolution) <<endl;
-
-    Solution* s_random = new Solution(problem->PREFFERED_GENOME_SIZE);
-
-
-    greadySolution->print();
-    s_random->print();
-    MutationOps::Inverse(greadySolution)->print();
-    CrossOps::PMX(greadySolution,s_random,problem->PREFFERED_GENOME_SIZE)->print();
-}
-*/
 void test_evo(Problem* problem)
 {
+    cout<<endl<<endl<<"_____EVO TEST____";
     int popSize = 33;//50,100,500
     int Xp = 75;
     int Mp = 25;
@@ -55,9 +39,9 @@ void test_evo(Problem* problem)
     int CROSS_ID = CrossOps::OX_ID;
 
     EvoAlg* evo = new EvoAlg(problem,popSize);
-    int budget = problem->SIZE*problem->SIZE*10;
+    int budget = problem->SIZE*problem->SIZE*EVOTest::STANDARD_MULTIPLAYER;
     if(problem->SIZE>=500)
-        budget = problem->SIZE*100;
+        budget = problem->SIZE*EVOTest::OVER500_MULTIPLAYER;
     evo->Xp = Xp;
     evo->Mp = Mp;
     evo->REPAIRp = REPAIRp;
@@ -75,7 +59,7 @@ void test_evo(Problem* problem)
     evo->GetWorst()->print();
     cout<<endl<<evo->GetAvarage();
     string file_name = "out/evo_";
-    file_name += to_string(problem->PREFFERED_GENOME_SIZE);
+    file_name += problem->NAME;
 
     //Logger bestLogger(file_name+"_best.csv");
     //Logger worstLogger(file_name+"_worst.csv");
@@ -132,12 +116,13 @@ void test_random(Problem* problem)
 }
 void test_sa(Problem* problem)
 {
+    cout <<endl<<endl<<"_____SA TEST____";
     float startTemp = problem->PREFFERED_GENOME_SIZE*problem->PREFFERED_GENOME_SIZE*problem->PREFFERED_GENOME_SIZE;
     SAAlg sa(problem,100);
 
-    int budget = problem->SIZE*problem->SIZE*100;
+    int budget = problem->SIZE*problem->SIZE*EVOTest::STANDARD_MULTIPLAYER;
     if(problem->SIZE>=500)
-        budget = problem->SIZE*100;
+        budget = problem->SIZE*EVOTest::OVER500_MULTIPLAYER;
 
     sa.coolingFactor = 0.995;
     sa.maxIterations = budget;//problem->J * 1000;
@@ -171,17 +156,8 @@ int main()
     //Solution* opt = MutationOps::OptimalTrack(problem,s);
     //opt->print();
 
-    //test_gready_and_operators(problem);
-    //test_random(problem);
+    test_sa(problem);
     test_evo(problem);
-    //test_sa(problem);
-    //Tests::RandomTest();
-    //Tests::GreedyTest();
-    //Tests::EvoTest();
-    //Tests::EvoParamTest();
-    //Tests::SATest();
-    //Tests::SAParamTest();
-    //Tests::SATest(problem);
 
     return 0;
 }
