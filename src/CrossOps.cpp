@@ -26,7 +26,7 @@ Solution* CrossOps::OX(Solution* s1,Solution* s2,int size)
     {
         int temp = start;
         start = end;
-        end  = start;
+        end  = temp;
     }
     for(int i = start;i<=end;i++)
     {
@@ -101,7 +101,7 @@ Solution* CrossOps::PMX(Solution* s1,Solution* s2,int size)
     {
         int temp = start;
         start = end;
-        end  = start;
+        end  = temp;
     }
     for(int i = start;i<=end;i++)//crossing
     {

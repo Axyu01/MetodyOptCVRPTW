@@ -10,17 +10,17 @@ Problem::Problem(string path,int problemSize)
 }
 Problem::~Problem()
 {
-    for(int l=0;l<SIZE;l++)
+    for(int l=0;l<SIZE+1;l++)
     {
         delete[] DistanceMatrix[l];
     }
-    delete DistanceMatrix;
-    delete ReadyTime;
-    delete DueDate;
-    delete ServiceTime;
-    delete COORD_X;
-    delete COORD_Y;
-    delete Demand;
+    delete[] DistanceMatrix;
+    delete[] ReadyTime;
+    delete[] DueDate;
+    delete[] ServiceTime;
+    delete[] COORD_X;
+    delete[] COORD_Y;
+    delete[] Demand;
 }
 int Problem::EstimateSolution(Solution* s)
 {
@@ -28,7 +28,7 @@ int Problem::EstimateSolution(Solution* s)
     double penalty = 0;
     int load = 0;
     double time = 0;
-    int currentNode;
+    int currentNode = 0;
     int previousNode = 0;
 
     for(int i = 0; i<s->size; i++)

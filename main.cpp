@@ -10,6 +10,7 @@
 #include "Logger.h"
 #include "SAAlg.h"
 #include "EVOTest.h"
+#include "cstdio"
 using namespace std;
 void test_opt()
 {
@@ -22,7 +23,7 @@ void test_opt()
     cout << problem->EstimateSolution(s_opt) <<endl;
     s_opt->print();
 }
-void test_evo(Problem* problem)
+void test_evo(Problem* problem,int debug_interval,bool isInfinite)
 {
     cout<<endl<<endl<<"_____EVO TEST____";
     int popSize = 33;//50,100,500
@@ -53,6 +54,8 @@ void test_evo(Problem* problem)
     evo->elitesNum = elitesNum;
     evo->MUT_ID = MUT_ID;
     evo->CROSS_ID = CROSS_ID;
+
+
     evo->Init();
     evo->Eval();
     evo->GetBest()->print();
@@ -66,13 +69,13 @@ void test_evo(Problem* problem)
     //Logger avgLogger(file_name+"_avg.csv");
 
     int loops = budget/popSize;
-    for(int i=0;i<loops;i++)
+    for(int i=0;i<loops || isInfinite;i++)
     {
         //Evo Loop
         evo->Evolve();
         evo->Eval();
         //Debugging
-        if(i%100 == 0 && false)
+        if(debug_interval >0 && i%debug_interval == 0)
         {
             cout<<endl<<"AVG:"<<evo->GetAvarage();
             Solution* best = evo->GetBest();
@@ -97,7 +100,7 @@ void test_random(Problem* problem)
 {
     int tests = 10000;
     long long int sum = 0;
-    Solution* best;
+    Solution* best = nullptr;
     for(int i=0;i<tests;i++)
     {
         Solution* s = new Solution(problem->PREFFERED_GENOME_SIZE);
@@ -153,11 +156,14 @@ int main()
     }
     problem->EstimateSolution(s);
     s->print();
+    s->print();
     //Solution* opt = MutationOps::OptimalTrack(problem,s);
     //opt->print();
 
-    test_sa(problem);
-    test_evo(problem);
+    //test_sa(problem);
+    test_evo(problem,100,false);
+
+    getchar();
 
     return 0;
 }

@@ -123,6 +123,7 @@ Solution** MutationOps::FindTracks(Problem* problem,Solution* s)
         Solution* temp = tracks[track_id];
         tracks[track_id] = new Solution(tracks[track_id],tracks[track_id]->size-detectedSymbols);
         track_id++;
+        delete temp;
     }
     return tracks;
 }
@@ -248,7 +249,9 @@ Solution* MutationOps::OptimalTrack(Problem* problem,Solution* s)
     {
         possibleLocations[i] = s->Genome[i];
     }
-    Solution* best = OptimalTrack(problem,new Solution(0),possibleLocations,lSize);
+    Solution* zeroSolution = new Solution(0);
+    Solution* best = OptimalTrack(problem,zeroSolution,possibleLocations,lSize);
+    delete zeroSolution;
     delete possibleLocations;
     return best;
 }
@@ -277,7 +280,8 @@ Solution* MutationOps::OptimalTrack(Problem* problem,Solution* s,int* possibleLo
                 checkedPossibleLocations[i] = possibleLocations[i+1];
         }
         Solution* sFound = OptimalTrack(problem,checked,checkedPossibleLocations,checkedLSize);
-        delete checkedPossibleLocations;
+        delete checked;
+        delete[] checkedPossibleLocations;
         if(best == nullptr || sFound->eval<best->eval)
         {
             if(best !=nullptr)
@@ -635,7 +639,7 @@ double* MutationOps::FindRecyclableGenes(Problem* problem,Solution* s)
 
     return isGeneRecyclable;
 }
-MutationOps::DEBUG_CheckSolution(Problem* problem,Solution* checked,Solution* original,Solution** tracks)
+void MutationOps::DEBUG_CheckSolution(Problem* problem,Solution* checked,Solution* original,Solution** tracks)
 {
     //check for debugging purposes
     bool foundError = false;
@@ -672,7 +676,7 @@ MutationOps::DEBUG_CheckSolution(Problem* problem,Solution* checked,Solution* or
         getchar();
     }
 }
-MutationOps::DEBUG_PRINT_Tracks(Problem*problem,Solution** tracks)
+void MutationOps::DEBUG_PRINT_Tracks(Problem*problem,Solution** tracks)
 {
     cout<<endl<<"TRACKS";
     int numOfTracks =problem->MAX_VEHICLES;

@@ -139,7 +139,7 @@ void EvoAlg::Evolve()
         population[newElitePos] = oldElite;
     }
     //copy elites
-    for(int currentSize = 0;currentSize < popSize;currentSize++)
+    for(int currentSize = 0;currentSize < elitesNum;currentSize++)
     {
         newPopulation[currentSize] = new Solution(population[currentSize]);
     }
@@ -174,7 +174,7 @@ void EvoAlg::Evolve()
     {
         delete population[s];
     }
-    delete population;
+    delete[] population;
 
     //assign new one
     population = newPopulation;

@@ -62,8 +62,13 @@ Solution::~Solution()
 {
     delete[] Genome;
 }
-Solution::print()
+void Solution::print()
 {
+    if (size <= 0 || Genome == nullptr)
+    {
+        cout << "\n| Empty Solution |";
+        return;
+    }
      cout <<"\n| ";
     for(int g =0;g<size-1;g++)
     {
@@ -72,11 +77,13 @@ Solution::print()
     cout <<Genome[size-1];
     cout<<" | size: "<<size<<" | eval: "<<eval<<" | penalty: "<<penalty<<" |";
 }
-Solution::Insert(int gene,int position)
+void Solution::Insert(int gene,int position)
 {
+    if (position < 0) position = 0;
+    if (position > size) position = size; // Clamp to max bound
+
     int* oldGenome = Genome;
     size+=1;
-    Genome = new int[size];
 
     //Copy and insert
     Genome = new int[size];
