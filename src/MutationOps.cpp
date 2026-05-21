@@ -157,7 +157,7 @@ Solution* MutationOps::ReconstructSolutionFromTracks(Problem* problem,Solution**
     }
     return sOptimized;
 }
-Solution* MutationOps::OptimizeTracks(Problem* problem,Solution* s)
+Solution* MutationOps::OptimizeTracks(Problem* problem,Solution* s,int OPT_TRACK_MAX_LOCATION_COUNT)
 {
     Solution** tracks = FindTracks(problem,s);
 
@@ -293,7 +293,7 @@ Solution* MutationOps::OptimalTrack(Problem* problem,Solution* s,int* possibleLo
     }
     return best;
 }
-Solution* MutationOps::Repair(Problem* problem,Solution* s,bool TRY_BEFORE,bool TRY_AFTER,bool USE_DAMAND)
+Solution* MutationOps::Repair(Problem* problem,Solution* s,bool TRY_BEFORE,bool TRY_AFTER,bool USE_DAMAND,int OPT_TRACK_MAX_LOCATION_COUNT)
 {
     const int BIG_NUMBER = 1000000000;
     //int x;

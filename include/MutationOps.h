@@ -11,14 +11,12 @@ class MutationOps
         static Solution* Swap(Solution* s);
         static Solution* Swap(Solution* s,int numOfSwaps);
         static Solution* Inverse(Solution* s);
-        static Solution* OptimizeTracks(Problem* problem,Solution* s);
+        static Solution* OptimizeTracks(Problem* problem,Solution* s,int OPT_TRACK_MAX_LOCATION_COUNT);
         static Solution* GreadyTrack(Problem* problem,Solution* s);
         static Solution* OptimalTrack(Problem* problem,Solution* s);
-        static Solution* Repair(Problem* problem,Solution* s,bool tryBefore,bool tryAfter,bool useDemand);
+        static Solution* Repair(Problem* problem,Solution* s,bool tryBefore,bool tryAfter,bool useDemand,int OPT_TRACK_MAX_LOCATION_COUNT);
         const static int SWAP_ID = 0;
         const static int INVERSE_ID = 1;
-
-        const static int OPT_TRACK_MAX_LOCATION_COUNT = 5;
 
     protected:
         static void DEBUG_CheckSolution(Problem* problem,Solution* checked,Solution* original,Solution** tracks);

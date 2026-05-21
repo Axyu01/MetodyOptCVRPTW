@@ -14,6 +14,7 @@ class EvoAlg
         int Mp = 30;
         //try optimize tracks mutation probablity
         int OPTp = 10;
+        int OPT_TRACK_MAX_LOCATION_COUNT = 5;
         //Repair mutations parameters
         int REPAIRp = 10;
         bool REPAIR_TRY_BEFORE = false;

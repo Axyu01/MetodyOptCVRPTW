@@ -34,6 +34,7 @@ void test_evo(Problem* problem,int debug_interval,bool isInfinite)
     bool REPAIR_TRY_AFTER = false;
     bool REPAIR_USE_DEMAND = false;
     int OPTp = 30;
+    int OPT_TRACK_MAX_LOCATION_COUNT = 1;
     int turSize = 2;
     int elitesNum = 1;
     int MUT_ID = MutationOps::SWAP_ID;//MutationOps::INVERSE_ID;
@@ -77,7 +78,9 @@ void test_evo(Problem* problem,int debug_interval,bool isInfinite)
         //Debugging
         if(debug_interval >0 && i%debug_interval == 0)
         {
+            cout<<endl<<endl<<"PROGRESS "<<i<<" | "<<loops<<endl;
             cout<<endl<<"AVG:"<<evo->GetAvarage();
+            cout<<endl<<"Best:";
             Solution* best = evo->GetBest();
             best->print();
             delete best;
@@ -92,8 +95,11 @@ void test_evo(Problem* problem,int debug_interval,bool isInfinite)
         delete best;
         delete worst;
     }
+    cout<<endl<<"ALL BEST:";
     evo->GetBest()->print();
+    cout<<endl<<"LAST WORST:";
     evo->GetWorst()->print();
+    cout<<endl<<"LAST AVG:";
     cout<<endl<<evo->GetAvarage();
 }
 void test_random(Problem* problem)
