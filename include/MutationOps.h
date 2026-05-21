@@ -14,7 +14,7 @@ class MutationOps
         static Solution* OptimizeTracks(Problem* problem,Solution* s);
         static Solution* GreadyTrack(Problem* problem,Solution* s);
         static Solution* OptimalTrack(Problem* problem,Solution* s);
-        static Solution* Repair(Problem* problem,Solution* s);
+        static Solution* Repair(Problem* problem,Solution* s,bool tryBefore,bool tryAfter,bool useDemand);
         const static int SWAP_ID = 0;
         const static int INVERSE_ID = 1;
 
@@ -26,7 +26,6 @@ class MutationOps
         static Solution** FindTracks(Problem* problem,Solution* s);
         static Solution* ReconstructSolutionFromTracks(Problem* problem,Solution** tracks);
         static Solution* OptimalTrack(Problem* problem,Solution* checked,int* possibleLocations,int lSize);
-        static Solution* Repair(Problem* problem,Solution* s,int correctGenes);
         static double* FindRecyclableGenes(Problem* problem,Solution* s);
         static bool* RestructureRecycledGenes(Problem* problem,Solution* s);
 

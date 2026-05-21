@@ -44,8 +44,11 @@ void test_evo(Problem* problem)
     int popSize = 33;//50,100,500
     int Xp = 75;
     int Mp = 25;
-    int REPAIRp = 100;
-    int OPTp = 0;
+    int REPAIRp = 70;
+    bool REPAIR_TRY_BEFORE = false;
+    bool REPAIR_TRY_AFTER = false;
+    bool REPAIR_USE_DEMAND = false;
+    int OPTp = 30;
     int turSize = 2;
     int elitesNum = 1;
     int MUT_ID = MutationOps::SWAP_ID;//MutationOps::INVERSE_ID;
@@ -58,6 +61,9 @@ void test_evo(Problem* problem)
     evo->Xp = Xp;
     evo->Mp = Mp;
     evo->REPAIRp = REPAIRp;
+    evo->REPAIR_TRY_BEFORE = REPAIR_TRY_BEFORE;
+    evo->REPAIR_TRY_AFTER = REPAIR_TRY_AFTER;
+    evo->REPAIR_USE_DAMAND = REPAIR_USE_DEMAND;
     evo->OPTp = OPTp;
     evo->turSize = turSize;
     evo->elitesNum = elitesNum;
@@ -153,6 +159,8 @@ int main()
     srand(time(0));
 
     Problem* problem = new Problem("problems/solomon-100/c101.txt",100);
+    problem->EARLY_ARRIVAL_PENALTY_MULTIPLAYER = 0;
+    problem->LATE_ARRIVAL_PENALTY_MULTIPLAYER = 0.01;
     Solution* s = new Solution(problem->SIZE);
     for(int i =0;i<s->size;i++)
     {

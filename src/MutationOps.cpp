@@ -289,22 +289,25 @@ Solution* MutationOps::OptimalTrack(Problem* problem,Solution* s,int* possibleLo
     }
     return best;
 }
-Solution* MutationOps::Repair(Problem* problem,Solution* s)
+Solution* MutationOps::Repair(Problem* problem,Solution* s,bool TRY_BEFORE,bool TRY_AFTER,bool USE_DAMAND)
 {
-    return MutationOps::Repair(problem,s,0);
-}
-Solution* MutationOps::Repair(Problem* problem,Solution* s,int correctGenes)
-{
+    const int BIG_NUMBER = 1000000000;
     //int x;
     //cin>>x;
 
     Solution** tracks = FindTracks(problem,s);
     Solution** prunedTracks = new Solution*[problem->MAX_VEHICLES];
-    for(int i=0;i<problem->MAX_VEHICLES;i++)
+    int* prunedDemand = new int[problem->MAX_VEHICLES];
+    for(int i = 0;i<problem->MAX_VEHICLES;i++)
     {
         prunedTracks[i] =  nullptr;
+        if(USE_DAMAND)
+            prunedDemand[i] = 0;
+        else
+            prunedDemand[i] = -BIG_NUMBER;
     }
     int prunedTracksCount = -1;
+    //find how many pruned tracks are there to be made
     for(int i=0;i<=problem->MAX_VEHICLES;i++)
     {
         Solution* track = nullptr;
@@ -317,33 +320,33 @@ Solution* MutationOps::Repair(Problem* problem,Solution* s,int correctGenes)
             break;
         }
     }
-    cout << endl<< "DYNAMIC";
+    //cout << endl<< "DYNAMIC";
     //init and calculate recyclable genes dynamic table + init prunedTracks + find available genes
     double** isGeneRecyclable = new double*[problem->MAX_VEHICLES];
     list<int> availableRecyclableGenes;
     for(int i=0;i<prunedTracksCount;i++)
     {
-        cout << endl<<"i"<<i;
+        //cout << endl<<"i"<<i;
         Solution* track = tracks[i];
 
         isGeneRecyclable[i] = FindRecyclableGenes(problem,track);
         int recyclableGenesCount =0;
         for(int g=0;g<track->size;g++)
         {
-            cout << endl<<"g"<<g;
+            //cout << endl<<"g"<<g;
             if(isGeneRecyclable[i][g]<0)
             {
-                cout << endl<<"push";
+                //cout << endl<<"push";
                 availableRecyclableGenes.push_back(track->Genome[g]);
-                cout << endl<<"post push";
+                //cout << endl<<"post push";
                 recyclableGenesCount++;
             }
         }
-        cout << endl<<"new"<<track->size<<" - "<<recyclableGenesCount;
+        //cout << endl<<"new"<<track->size<<" - "<<recyclableGenesCount;
         prunedTracks[i] = new Solution(track->size-recyclableGenesCount);
-        cout << endl<<"post new";
+        //cout << endl<<"post new";
     }
-    //copy values to prunedTracks + estimate them
+    //copy values to prunedTracks + estimate them + init demands
     for(int i=0;i<prunedTracksCount;i++)
     {
         Solution* track = tracks[i];
@@ -353,79 +356,102 @@ Solution* MutationOps::Repair(Problem* problem,Solution* s,int correctGenes)
             if(isGeneRecyclable[i][g]>=0)
             {
                 prunedTracks[i]->Genome[prunedIterator++] =track->Genome[g];
+                int town = track->Genome[g]+1;
+                if(town>=problem->SIZE)
+                    town =0;
+                prunedDemand[i]+=problem->Demand[town];
             }
         }
         problem->EstimateSolution(prunedTracks[i]);
     }
-
-
-    cout << endl<< "REPAIR";
+    //cout << endl<< "REPAIR";
     //
     //try repairing the solutions
     for(int i=0;i<prunedTracksCount && availableRecyclableGenes.size()>0 ;i++)
     {
-        cout << endl<< "i:"<<i;
+        //cout << endl<< "i:"<<i;
         Solution* repairedTrack = tracks[i];
         int prunedIterator = 0;
-        for(int repairedG=0;repairedG<repairedTrack->size && availableRecyclableGenes.size()>0 ;repairedG++)
+        bool tryBefore = TRY_BEFORE;
+        bool tryAfter = TRY_AFTER;
+        int load = 0;
+        for(int repairedG=0;repairedG<=repairedTrack->size && availableRecyclableGenes.size()>0 ;repairedG++)
         {
-            cout << endl<< "repairedG:"<<repairedG;
-            if(isGeneRecyclable[i][repairedG] >=0)
+            //cout << endl<< "repairedG:"<<repairedG;
+            if(tryBefore == true)
+            {
+                tryBefore = false;
+            }
+            else if(repairedG == repairedTrack->size)
+            {
+                if(tryAfter == false)
+                    break;
+                tryAfter = false;
+            }
+            else if(isGeneRecyclable[i][repairedG] >=0)
             {
                 continue;
                 prunedIterator++;
             }
-            cout << " IS FAULTY";
+            //cout << " IS FAULTY";
 
             int bestGene = 0;
             while(bestGene != -1)
             {
-                cout<<endl<<"while...";
+                //cout<<endl<<"while...";
                 bestGene =-1;
                 auto bestIt = availableRecyclableGenes.end();
 
                 double bestPenalty = prunedTracks[i]->penalty;
                 if(bestPenalty>0)
                 {
-                    cout<<endl<<"BEST PENALTY>0!!!"<<endl;
+                    //cout<<endl<<"BEST PENALTY>0!!!"<<endl;
                 }
-                //double bestEstim = -1f;
                 //Find posible donor gene
                 for (auto it = availableRecyclableGenes.begin(); it != availableRecyclableGenes.end(); ++it)
                 {
                     int gene = *it;
+                    int town = gene+1;
+                    if(town>=problem->SIZE)
+                        town = 0;
+                    int demand = problem->Demand[town];
                     Solution* copyS =  new Solution(prunedTracks[i]);
                     copyS->Insert(gene,prunedIterator);
                     problem->EstimateSolution(copyS);
-                    if(copyS->penalty<=bestPenalty)
+                    if(copyS->penalty<=bestPenalty && (prunedDemand[i]+demand)<=problem->CAPACITY)
                     {
                         bestGene = gene;
                         bestIt = it;
-                        cout<<endl<<"BEST GENE:"<<bestGene;
+                        //cout<<endl<<"BEST GENE:"<<bestGene;
                         //Replace pruned track
                         delete prunedTracks[i];
                         prunedTracks[i] = copyS;
                         prunedIterator++;
+                        prunedDemand[i]+=demand;
                         break;
+                    }
+                    else
+                    {
+                        delete copyS;
                     }
                 }
                 if(bestGene != -1)
                 {
-                    cout<<endl<<"erese";
+                    //cout<<endl<<"erese";
                     availableRecyclableGenes.erase(bestIt);
-                    cout<<endl<<"post erese";
+                    //cout<<endl<<"post erese";
                 }
             }
-            cout<<endl<<"post while...";
+            //cout<<endl<<"post while...";
         }
     }
-    cout << endl<< "LEFTOVER";
+    //cout << endl<< "LEFTOVER";
     //Use leftover values gene values
     if(availableRecyclableGenes.size()>0)
     {
         if(prunedTracksCount < problem->MAX_VEHICLES)
         {
-            cout <<endl<<"recycled";
+            //cout <<endl<<"recycled";
             Solution* newTrack = new Solution(availableRecyclableGenes.size());
             int i=0;
             for (auto it = availableRecyclableGenes.begin(); it != availableRecyclableGenes.end(); ++it)
@@ -436,7 +462,7 @@ Solution* MutationOps::Repair(Problem* problem,Solution* s,int correctGenes)
         }
         else
         {
-            cout <<endl<<"copy + recycled";
+            //cout <<endl<<"copy + recycled";
             Solution* lastSolution = prunedTracks[prunedTracksCount-1];
             Solution* newTrack = new Solution(availableRecyclableGenes.size()+lastSolution->size);
             int i=0;
@@ -452,8 +478,8 @@ Solution* MutationOps::Repair(Problem* problem,Solution* s,int correctGenes)
             delete lastSolution;
         }
     }
-    cout<<endl<<"OPTIMIZE LAST TRACK "<< prunedTracksCount<<endl;
-    prunedTracks[prunedTracksCount-1]->print();
+    //cout<<endl<<"OPTIMIZE LAST TRACK "<< prunedTracksCount<<endl;
+    //prunedTracks[prunedTracksCount-1]->print();
     //Optimize last pruned track
     if(prunedTracks[prunedTracksCount-1]->size>OPT_TRACK_MAX_LOCATION_COUNT)
     {
@@ -481,41 +507,42 @@ Solution* MutationOps::Repair(Problem* problem,Solution* s,int correctGenes)
     //recycledSolution->print();
     //Solution* wellRecycledSolution = Repair(problem,recycledSolution,correctedGenes);//The solution is well recycled, return it
     //delete recycledSolution;
-    cout <<endl<<"NORMAL";
-    DEBUG_PRINT_Tracks(problem,tracks);
-    cout <<endl<<"PRUNED";
-    DEBUG_PRINT_Tracks(problem,prunedTracks);
+    //cout <<endl<<"NORMAL";
+    //DEBUG_PRINT_Tracks(problem,tracks);
+    //cout <<endl<<"PRUNED";
+    //DEBUG_PRINT_Tracks(problem,prunedTracks);
 
-    cout <<endl<<"REPAIR";
+    //cout <<endl<<"REPAIR";
 
     Solution* sRepaired = ReconstructSolutionFromTracks(problem,prunedTracks);
     problem->EstimateSolution(sRepaired);
-    sRepaired->print();
+    //sRepaired->print();
     problem->EstimateSolution(s);
-    s->print();
-    cout <<endl<<"POST REPAIR";
+    //s->print();
+    //cout <<endl<<"POST REPAIR";
 
     DEBUG_CheckSolution(problem,sRepaired,s,tracks);
-    cout <<endl<<"MEMORY MANAGMENT";
+    //cout <<endl<<"MEMORY MANAGMENT";
     //Memory management
     for(int i=0;i<prunedTracksCount;i++)
     {
-        cout <<endl<<"i"<<i;
+        //cout <<endl<<"i"<<i;
         Solution* track = tracks[i];
         delete prunedTracks[i];
         if(track == nullptr)
             continue;
-        cout <<endl<<"i"<<i;
+        //cout <<endl<<"i"<<i;
         delete track;
         delete[] isGeneRecyclable[i];
     }
-    cout <<endl<<"del recyc";
+    //cout <<endl<<"del recyc";
     delete[] isGeneRecyclable;
-    cout <<endl<<"del tracks";
+    //cout <<endl<<"del tracks";
     delete[] tracks;
-    cout <<endl<<"del tracks pruned";
+    //cout <<endl<<"del tracks pruned";
     delete[] prunedTracks;
-    cout <<endl<<"return";
+    delete[] prunedDemand;
+    //cout <<endl<<"return";
 
     return sRepaired;
 }

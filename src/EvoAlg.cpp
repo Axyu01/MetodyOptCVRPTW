@@ -70,7 +70,7 @@ Solution* EvoAlg::Mutate(Solution* s)
     if(rand()%MAX_PROB < REPAIRp)
     {
         //cout <<endl<< "Repair";
-        Solution* repairedSolution =  MutationOps::Repair(problem,mutatedSolution);
+        Solution* repairedSolution =  MutationOps::Repair(problem,mutatedSolution,REPAIR_TRY_BEFORE,REPAIR_TRY_AFTER,REPAIR_USE_DAMAND);
         //cout << endl<< "RepairEnd";
         if(mutatedSolution != s)
             delete mutatedSolution;

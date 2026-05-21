@@ -12,8 +12,14 @@ class EvoAlg
         int popSize = 100;
         int Xp = 70;
         int Mp = 30;
+        //try optimize tracks mutation probablity
         int OPTp = 10;
+        //Repair mutations parameters
         int REPAIRp = 10;
+        bool REPAIR_TRY_BEFORE = false;
+        bool REPAIR_TRY_AFTER = false;
+        bool REPAIR_USE_DAMAND = false;
+
         int turSize = 2;
         int elitesNum = 3;
         int MUT_ID = MutationOps::INVERSE_ID;
