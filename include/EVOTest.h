@@ -9,7 +9,7 @@ class EVOTest
 {
     public:
         static void UniversalTest(Problem* problem,EvoAlg* evo,std::string test_id);
-        const static int STANDARD_MULTIPLAYER = 1000;
+        const static int STANDARD_MULTIPLAYER = 10;
         const static int OVER500_MULTIPLAYER = 100;
 
     protected:
