@@ -44,8 +44,8 @@ void test_evo(Problem* problem)
     int popSize = 33;//50,100,500
     int Xp = 75;
     int Mp = 25;
-    int REPAIRp = 0;
-    int OPTp = 10;
+    int REPAIRp = 100;
+    int OPTp = 0;
     int turSize = 2;
     int elitesNum = 1;
     int MUT_ID = MutationOps::SWAP_ID;//MutationOps::INVERSE_ID;

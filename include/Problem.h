@@ -6,6 +6,8 @@
 class Problem
 {
     public:
+        const float LATE_ARRIVAL_PENALTY_MULTIPLAYER = 0.01;
+        const float EARLY_ARRIVAL_PENALTY_MULTIPLAYER = 0;
         Problem(std::string,int problemSize);
         virtual ~Problem();
         int EstimateSolution(Solution* s);

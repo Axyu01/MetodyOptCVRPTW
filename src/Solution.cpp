@@ -1,6 +1,7 @@
 #include "Solution.h"
 #include <cstdlib>
 #include <iostream>
+#include <cstdio>
 
 using namespace std;
 Solution::Solution(Solution* s)
@@ -13,6 +14,7 @@ Solution::Solution(Solution* s)
     }
     this->size = s->size;
     this->eval = s->eval;
+    this->penalty = s->penalty;
 
 }
 Solution::Solution(int size)
@@ -54,6 +56,7 @@ Solution::Solution(Solution*s,int size)
     }
     this->size = size;
     this->eval = s->eval;
+    this->penalty = s->penalty;
 }
 Solution::~Solution()
 {
@@ -67,5 +70,26 @@ Solution::print()
         cout << Genome[g] << ":";
     }
     cout <<Genome[size-1];
-    cout<<" | size: "<<size<<" | eval: "<<eval<<" |";
+    cout<<" | size: "<<size<<" | eval: "<<eval<<" | penalty: "<<penalty<<" |";
+}
+Solution::Insert(int gene,int position)
+{
+    int* oldGenome = Genome;
+    size+=1;
+    Genome = new int[size];
+
+    //Copy and insert
+    Genome = new int[size];
+    for(int g =0;g<size;g++)
+    {
+        if(g == position)
+            Genome[g] = gene;
+        else if(g<position)
+            Genome[g] = oldGenome[g];
+        else
+            Genome[g] = oldGenome[g-1];
+    }
+    this->eval = 0;
+    this->penalty = 0;
+    delete[] oldGenome;
 }

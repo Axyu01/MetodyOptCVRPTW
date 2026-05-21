@@ -12,7 +12,9 @@ class Solution
         int* Genome;
         int size;
         double eval;
+        double penalty;
         print();
+        Insert(int g,int position);
 
     protected:
 

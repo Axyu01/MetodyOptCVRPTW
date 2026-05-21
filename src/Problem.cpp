@@ -25,6 +25,7 @@ Problem::~Problem()
 int Problem::EstimateSolution(Solution* s)
 {
     double estimation = 0;
+    double penalty = 0;
     int load = 0;
     double time = 0;
     int currentNode;
@@ -65,10 +66,13 @@ int Problem::EstimateSolution(Solution* s)
         if(time < ReadyTime[currentNode])
         {
                 time = ReadyTime[currentNode];
+                estimation += (time - ReadyTime[currentNode])*EARLY_ARRIVAL_PENALTY_MULTIPLAYER;
+                penalty += (time - ReadyTime[currentNode])*EARLY_ARRIVAL_PENALTY_MULTIPLAYER;
         }
         if(time > DueDate[currentNode])// and add penalty
         {
-            estimation += (time - DueDate[currentNode]);
+            estimation += (time - DueDate[currentNode])*LATE_ARRIVAL_PENALTY_MULTIPLAYER;
+            penalty += (time - DueDate[currentNode])*LATE_ARRIVAL_PENALTY_MULTIPLAYER;
         }
         time += ServiceTime[currentNode];
 
@@ -77,6 +81,7 @@ int Problem::EstimateSolution(Solution* s)
     estimation += DistanceMatrix[currentNode][0];
     //cout <<"Going from: "<< currentNode <<" to: "<<0<<endl;
     s->eval = estimation;
+    s->penalty = penalty;
     return estimation;
 }
 void Problem::Load(string path,int problemSize)

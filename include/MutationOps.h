@@ -15,15 +15,20 @@ class MutationOps
         static Solution* GreadyTrack(Problem* problem,Solution* s);
         static Solution* OptimalTrack(Problem* problem,Solution* s);
         static Solution* Repair(Problem* problem,Solution* s);
-        static Solution* Repair(Problem* problem,Solution* s,int correctGenes);
-        static bool* FindRecyclableGenes(Problem* problem,Solution* s);
         const static int SWAP_ID = 0;
         const static int INVERSE_ID = 1;
 
         const static int OPT_TRACK_MAX_LOCATION_COUNT = 5;
 
     protected:
+        static DEBUG_CheckSolution(Problem* problem,Solution* checked,Solution* original,Solution** tracks);
+        static DEBUG_PRINT_Tracks(Problem*problem,Solution** tracks);
+        static Solution** FindTracks(Problem* problem,Solution* s);
+        static Solution* ReconstructSolutionFromTracks(Problem* problem,Solution** tracks);
         static Solution* OptimalTrack(Problem* problem,Solution* checked,int* possibleLocations,int lSize);
+        static Solution* Repair(Problem* problem,Solution* s,int correctGenes);
+        static double* FindRecyclableGenes(Problem* problem,Solution* s);
+        static bool* RestructureRecycledGenes(Problem* problem,Solution* s);
 
     private:
 };

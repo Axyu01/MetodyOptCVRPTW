@@ -1,6 +1,9 @@
 #include "MutationOps.h"
 #include <cstdlib>
 #include <iostream>
+#include <cstdio>
+#include <list>
+
 using namespace std;
 MutationOps::MutationOps()
 {
@@ -65,9 +68,8 @@ Solution* MutationOps::Inverse(Solution* s)
 
     return s_out;
 }
-Solution* MutationOps::OptimizeTracks(Problem* problem,Solution* s)
+Solution** MutationOps::FindTracks(Problem* problem,Solution* s)
 {
-    int locations = 0;
     Solution** tracks = new Solution*[problem->MAX_VEHICLES];
     int track_id = 0;
     int track_start = 0;
@@ -122,6 +124,41 @@ Solution* MutationOps::OptimizeTracks(Problem* problem,Solution* s)
         tracks[track_id] = new Solution(tracks[track_id],tracks[track_id]->size-detectedSymbols);
         track_id++;
     }
+    return tracks;
+}
+Solution* MutationOps::ReconstructSolutionFromTracks(Problem* problem,Solution** tracks)
+{
+    //Put things together back
+    Solution* sOptimized = new Solution(problem->PREFFERED_GENOME_SIZE);
+
+    int track_id = 0;
+    int track_start =0;
+    int RETURN_SYMBOL = problem->SIZE;
+    for(int i=0;i<problem->MAX_VEHICLES;i++)
+    {
+        if(tracks[i] == nullptr)
+            break;
+        for(int g =0;g<tracks[i]->size;g++)
+        {
+            sOptimized->Genome[g+track_start] = tracks[i]->Genome[g];
+        }
+        if(track_start+tracks[i]->size <sOptimized->size)
+            sOptimized->Genome[track_start+tracks[i]->size] = RETURN_SYMBOL++;//return symbol
+        track_start += tracks[i]->size + 1;
+    }
+    //Fill rest with zero's
+    int dummy;
+    if(track_start == sOptimized->Genome[track_start-1])
+        cin>>dummy;
+    for(int i=track_start;i<sOptimized->size;i++)
+    {
+        sOptimized->Genome[i] = i;
+    }
+    return sOptimized;
+}
+Solution* MutationOps::OptimizeTracks(Problem* problem,Solution* s)
+{
+    Solution** tracks = FindTracks(problem,s);
 
     //Optimize tracks
     for(int i=0;i<problem->MAX_VEHICLES;i++)
@@ -150,63 +187,11 @@ Solution* MutationOps::OptimizeTracks(Problem* problem,Solution* s)
         }
         delete temp;
     }
-    //Put things together back
-    track_id = 0;
-    track_start =0;
-    int RETURN_SYMBOL = problem->SIZE;
-    Solution* sOptimized = new Solution(s);
-    for(int i=0;i<problem->MAX_VEHICLES;i++)
-    {
-        if(tracks[i] == nullptr)
-            break;
-        for(int g =0;g<tracks[i]->size;g++)
-        {
-            sOptimized->Genome[g+track_start] = tracks[i]->Genome[g];
-        }
-        if(track_start+tracks[i]->size <sOptimized->size)
-            sOptimized->Genome[track_start+tracks[i]->size] = RETURN_SYMBOL++;//return symbol
-        track_start += tracks[i]->size + 1;
-    }
-    //Fill rest with zero's
-    int dummy;
-    if(track_start == sOptimized->Genome[track_start-1])
-        cin>>dummy;
-    for(int i=track_start;i<sOptimized->size;i++)
-    {
-        sOptimized->Genome[i] = i;
-    }
-    //check for debugging purposes
-    bool foundError = false;
-    int foundErrorID = -1;
-    for(int i =0;i<s->size;i++)
-    {
-        if(foundError)
-                break;
-        foundError = true;
-        foundErrorID = i;
-        for(int j = 0;j<sOptimized->size;j++)
-        {
-            if(sOptimized->Genome[j] == i)
-            {
-                foundError = false;
-                break;
-            }
-        }
-    }
-    if(foundError)
-    {
-        cout<<endl<<"BROKEN SOLUTION ID:"<<foundErrorID;
-        sOptimized->print();
-        cout<<endl<<"ORIGINAL SOLUTION:";
-        s->print();
-        cout<<endl<<"OPTIMIZED TRACKS:";
-        for(int t =0;t<problem->MAX_VEHICLES;t++)
-        {
-            if(tracks[t] == nullptr)
-                break;
-            tracks[t]->print();
-        }
-    }
+
+    Solution* sOptimized = ReconstructSolutionFromTracks(problem,tracks);
+
+    DEBUG_CheckSolution(problem,sOptimized,s,tracks);
+
     //Memory management
     for(int i=0;i<problem->MAX_VEHICLES;i++)
     {
@@ -312,45 +297,236 @@ Solution* MutationOps::Repair(Problem* problem,Solution* s,int correctGenes)
 {
     //int x;
     //cin>>x;
-    bool* isGeneRecyclable = FindRecyclableGenes(problem,s);
-    Solution* recycledSolution = new Solution(s);
-    int recycledGene = 0;
-    for(int g=0;g<s->size;g++)
+
+    Solution** tracks = FindTracks(problem,s);
+    Solution** prunedTracks = new Solution*[problem->MAX_VEHICLES];
+    for(int i=0;i<problem->MAX_VEHICLES;i++)
     {
-        if(isGeneRecyclable[g] == false)
-            recycledSolution->Genome[recycledGene++] = s->Genome[g];
+        prunedTracks[i] =  nullptr;
     }
-    //cout << endl<<"REPAAAAAAAAAAAAAAAAIR!!!!!!!!!  "<<recycledGene;
-    if(recycledGene >=s->size)//The solution is well recycled, return it
+    int prunedTracksCount = -1;
+    for(int i=0;i<=problem->MAX_VEHICLES;i++)
     {
-        delete[] isGeneRecyclable;
-        return recycledSolution;
+        Solution* track = nullptr;
+        if(i != problem->MAX_VEHICLES)
+            track = tracks[i];
+
+        if(track == nullptr)
+        {
+            prunedTracksCount = i;
+            break;
+        }
     }
-    int correctedGenes = recycledGene;
-    for(int g=0;g<s->size;g++)
+    cout << endl<< "DYNAMIC";
+    //init and calculate recyclable genes dynamic table + init prunedTracks + find available genes
+    double** isGeneRecyclable = new double*[problem->MAX_VEHICLES];
+    list<int> availableRecyclableGenes;
+    for(int i=0;i<prunedTracksCount;i++)
     {
-        if(isGeneRecyclable[g] == true)
-            recycledSolution->Genome[recycledGene++] = s->Genome[g];
+        cout << endl<<"i"<<i;
+        Solution* track = tracks[i];
+
+        isGeneRecyclable[i] = FindRecyclableGenes(problem,track);
+        int recyclableGenesCount =0;
+        for(int g=0;g<track->size;g++)
+        {
+            cout << endl<<"g"<<g;
+            if(isGeneRecyclable[i][g]<0)
+            {
+                cout << endl<<"push";
+                availableRecyclableGenes.push_back(track->Genome[g]);
+                cout << endl<<"post push";
+                recyclableGenesCount++;
+            }
+        }
+        cout << endl<<"new"<<track->size<<" - "<<recyclableGenesCount;
+        prunedTracks[i] = new Solution(track->size-recyclableGenesCount);
+        cout << endl<<"post new";
     }
-    if(correctedGenes == correctGenes)//The solution cannot be improved, return it
+    //copy values to prunedTracks + estimate them
+    for(int i=0;i<prunedTracksCount;i++)
     {
-        delete[] isGeneRecyclable;
-        return recycledSolution;
+        Solution* track = tracks[i];
+        int prunedIterator = 0;
+        for(int g=0;g<track->size;g++)
+        {
+            if(isGeneRecyclable[i][g]>=0)
+            {
+                prunedTracks[i]->Genome[prunedIterator++] =track->Genome[g];
+            }
+        }
+        problem->EstimateSolution(prunedTracks[i]);
     }
-    delete[] isGeneRecyclable;
+
+
+    cout << endl<< "REPAIR";
+    //
+    //try repairing the solutions
+    for(int i=0;i<prunedTracksCount && availableRecyclableGenes.size()>0 ;i++)
+    {
+        cout << endl<< "i:"<<i;
+        Solution* repairedTrack = tracks[i];
+        int prunedIterator = 0;
+        for(int repairedG=0;repairedG<repairedTrack->size && availableRecyclableGenes.size()>0 ;repairedG++)
+        {
+            cout << endl<< "repairedG:"<<repairedG;
+            if(isGeneRecyclable[i][repairedG] >=0)
+            {
+                continue;
+                prunedIterator++;
+            }
+            cout << " IS FAULTY";
+
+            int bestGene = 0;
+            while(bestGene != -1)
+            {
+                cout<<endl<<"while...";
+                bestGene =-1;
+                auto bestIt = availableRecyclableGenes.end();
+
+                double bestPenalty = prunedTracks[i]->penalty;
+                if(bestPenalty>0)
+                {
+                    cout<<endl<<"BEST PENALTY>0!!!"<<endl;
+                }
+                //double bestEstim = -1f;
+                //Find posible donor gene
+                for (auto it = availableRecyclableGenes.begin(); it != availableRecyclableGenes.end(); ++it)
+                {
+                    int gene = *it;
+                    Solution* copyS =  new Solution(prunedTracks[i]);
+                    copyS->Insert(gene,prunedIterator);
+                    problem->EstimateSolution(copyS);
+                    if(copyS->penalty<=bestPenalty)
+                    {
+                        bestGene = gene;
+                        bestIt = it;
+                        cout<<endl<<"BEST GENE:"<<bestGene;
+                        //Replace pruned track
+                        delete prunedTracks[i];
+                        prunedTracks[i] = copyS;
+                        prunedIterator++;
+                        break;
+                    }
+                }
+                if(bestGene != -1)
+                {
+                    cout<<endl<<"erese";
+                    availableRecyclableGenes.erase(bestIt);
+                    cout<<endl<<"post erese";
+                }
+            }
+            cout<<endl<<"post while...";
+        }
+    }
+    cout << endl<< "LEFTOVER";
+    //Use leftover values gene values
+    if(availableRecyclableGenes.size()>0)
+    {
+        if(prunedTracksCount < problem->MAX_VEHICLES)
+        {
+            cout <<endl<<"recycled";
+            Solution* newTrack = new Solution(availableRecyclableGenes.size());
+            int i=0;
+            for (auto it = availableRecyclableGenes.begin(); it != availableRecyclableGenes.end(); ++it)
+            {
+                newTrack->Genome[i++] = *it;
+            }
+            prunedTracks[prunedTracksCount++] = newTrack;
+        }
+        else
+        {
+            cout <<endl<<"copy + recycled";
+            Solution* lastSolution = prunedTracks[prunedTracksCount-1];
+            Solution* newTrack = new Solution(availableRecyclableGenes.size()+lastSolution->size);
+            int i=0;
+            while(i<lastSolution->size)
+            {
+                newTrack->Genome[i++] = lastSolution->Genome[i];
+            }
+            for (auto it = availableRecyclableGenes.begin(); it != availableRecyclableGenes.end(); ++it)
+            {
+                newTrack->Genome[i++] = *it;
+            }
+            prunedTracks[prunedTracksCount-1] = newTrack;
+            delete lastSolution;
+        }
+    }
+    cout<<endl<<"OPTIMIZE LAST TRACK "<< prunedTracksCount<<endl;
+    prunedTracks[prunedTracksCount-1]->print();
+    //Optimize last pruned track
+    if(prunedTracks[prunedTracksCount-1]->size>OPT_TRACK_MAX_LOCATION_COUNT)
+    {
+        Solution* temp = prunedTracks[prunedTracksCount-1];
+        if(temp->size<=OPT_TRACK_MAX_LOCATION_COUNT)
+        {
+            prunedTracks[prunedTracksCount-1] = OptimalTrack(problem,temp);
+        }
+        else
+        {
+            Solution* gready = GreadyTrack(problem,temp);
+            problem->EstimateSolution(gready);
+            problem->EstimateSolution(temp);
+            if(temp->eval<gready->eval)
+            {
+                temp = gready;//will delete gready this way
+            }
+            else
+            {
+                prunedTracks[prunedTracksCount-1] = gready;//will save gready if it is better
+            }
+        }
+        delete temp;
+    }
     //recycledSolution->print();
-    Solution* wellRecycledSolution = Repair(problem,recycledSolution,correctedGenes);//The solution is well recycled, return it
-    delete recycledSolution;
-    return wellRecycledSolution;
+    //Solution* wellRecycledSolution = Repair(problem,recycledSolution,correctedGenes);//The solution is well recycled, return it
+    //delete recycledSolution;
+    cout <<endl<<"NORMAL";
+    DEBUG_PRINT_Tracks(problem,tracks);
+    cout <<endl<<"PRUNED";
+    DEBUG_PRINT_Tracks(problem,prunedTracks);
+
+    cout <<endl<<"REPAIR";
+
+    Solution* sRepaired = ReconstructSolutionFromTracks(problem,prunedTracks);
+    problem->EstimateSolution(sRepaired);
+    sRepaired->print();
+    problem->EstimateSolution(s);
+    s->print();
+    cout <<endl<<"POST REPAIR";
+
+    DEBUG_CheckSolution(problem,sRepaired,s,tracks);
+    cout <<endl<<"MEMORY MANAGMENT";
+    //Memory management
+    for(int i=0;i<prunedTracksCount;i++)
+    {
+        cout <<endl<<"i"<<i;
+        Solution* track = tracks[i];
+        delete prunedTracks[i];
+        if(track == nullptr)
+            continue;
+        cout <<endl<<"i"<<i;
+        delete track;
+        delete[] isGeneRecyclable[i];
+    }
+    cout <<endl<<"del recyc";
+    delete[] isGeneRecyclable;
+    cout <<endl<<"del tracks";
+    delete[] tracks;
+    cout <<endl<<"del tracks pruned";
+    delete[] prunedTracks;
+    cout <<endl<<"return";
+
+    return sRepaired;
 }
-bool* MutationOps::FindRecyclableGenes(Problem* problem,Solution* s)
+double* MutationOps::FindRecyclableGenes(Problem* problem,Solution* s)
 {
     int SIZE = problem->SIZE;
     int CAPACITY = problem->CAPACITY;
-    bool* isGeneRecyclable = new bool[s->size];
+    double* isGeneRecyclable = new double[s->size];
     for(int i=0;i<s->size;i++)
     {
-        isGeneRecyclable[i] = false;
+        isGeneRecyclable[i] = 0;//If value is 0 or greater,This means the gene is not recyclable
     }
 
     double estimation = 0;
@@ -372,7 +548,7 @@ bool* MutationOps::FindRecyclableGenes(Problem* problem,Solution* s)
             time = 0;
             if(previousNode == 0)
             {
-                isGeneRecyclable[i] = true;
+                isGeneRecyclable[i] = -1;//This means the gene is suited to be recycled
                 continue;
             }
         }
@@ -394,7 +570,7 @@ bool* MutationOps::FindRecyclableGenes(Problem* problem,Solution* s)
         //check for time window
         if(time + timeDelta> problem->DueDate[currentNode])// if late, add gene to recycle and rollback to previous location
         {
-            isGeneRecyclable[i] = true;
+            isGeneRecyclable[i] = -1;//This means the gene is suited to be recycled
             continue;
         }
         estimation += problem->DistanceMatrix[previousNode][currentNode];
@@ -405,19 +581,82 @@ bool* MutationOps::FindRecyclableGenes(Problem* problem,Solution* s)
                 time = problem->ReadyTime[currentNode];
         }
         time += problem->ServiceTime[currentNode];
+        isGeneRecyclable[i] = time;//This means the gene is NOT suited to be recycled + gives info about departure time
+
+        if(isGeneRecyclable[i-1] <0)//If previous gene is recyclable update info of recyclable chain
+        {
+            int recyclableTown = i-1;
+            while(recyclableTown>0 && isGeneRecyclable[recyclableTown] <0)//update recyclable chain
+            {
+                isGeneRecyclable[recyclableTown] = -time;//give info about upper constraint for possible future replacements
+                recyclableTown--;
+            }
+        }
 
         previousNode = currentNode;
     }
     estimation += problem->DistanceMatrix[currentNode][0];
 
     //Mark all last return genes as not recyclable
-    for(int g=s->size-1;g>=0;g--)
+    /*for(int g=s->size-1;g>=0;g--)
     {
         if(s->Genome[g]+1 > SIZE)//found return base token
             isGeneRecyclable[g] = false;
         else
             break;
-    }
+    }*/
 
     return isGeneRecyclable;
+}
+MutationOps::DEBUG_CheckSolution(Problem* problem,Solution* checked,Solution* original,Solution** tracks)
+{
+    //check for debugging purposes
+    bool foundError = false;
+    int foundErrorID = -1;
+    for(int i =0;i<checked->size;i++)
+    {
+        if(foundError)
+                break;
+        foundError = true;
+        foundErrorID = i;
+        for(int j = 0;j<checked->size;j++)
+        {
+            if(checked->Genome[j] == i)
+            {
+                foundError = false;
+                break;
+            }
+        }
+    }
+    if(foundError)
+    {
+        cout<<endl<<"BROKEN SOLUTION ID:"<<foundErrorID;
+        checked->print();
+        cout<<endl<<"ORIGINAL SOLUTION:";
+        original->print();
+        cout<<endl<<"OPTIMIZED TRACKS:";
+        for(int t =0;t<problem->MAX_VEHICLES;t++)
+        {
+            if(tracks[t] == nullptr)
+                break;
+            tracks[t]->print();
+        }
+        cout<<endl<<"Press any key to continue..."<<endl;
+        getchar();
+    }
+}
+MutationOps::DEBUG_PRINT_Tracks(Problem*problem,Solution** tracks)
+{
+    cout<<endl<<"TRACKS";
+    int numOfTracks =problem->MAX_VEHICLES;
+    for(int t =0;t<problem->MAX_VEHICLES;t++)
+    {
+        if(tracks[t] == nullptr)
+        {
+            numOfTracks =t;
+            break;
+        }
+        tracks[t]->print();
+    }
+    cout<<endl<<"COUNT:"<<numOfTracks;
 }
