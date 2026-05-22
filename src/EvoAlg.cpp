@@ -66,6 +66,13 @@ Solution* EvoAlg::Mutate(Solution* s)
         mutatedSolution = MutationOps::Inverse(s);
     else
         mutatedSolution = MutationOps::Swap(s,s->size*Xp/MAX_PROB);
+    if(rand()%MAX_PROB < REDISTp)
+    {
+        Solution* redistributedSolution =  MutationOps::RedistributeLocations(problem,mutatedSolution,REDIST_TRIES);
+        if(mutatedSolution != s)
+            delete mutatedSolution;
+        mutatedSolution = redistributedSolution;
+    }
     //return mutatedSolution;
     if(rand()%MAX_PROB < REPAIRp)
     {
@@ -83,6 +90,7 @@ Solution* EvoAlg::Mutate(Solution* s)
             delete mutatedSolution;
         mutatedSolution = optimizedSolution;
     }
+
     return mutatedSolution;
 }
 Solution* EvoAlg::GetBest()

@@ -20,6 +20,9 @@ class EvoAlg
         bool REPAIR_TRY_BEFORE = false;
         bool REPAIR_TRY_AFTER = false;
         bool REPAIR_USE_DAMAND = false;
+        //Redistribute mutation parameters
+        int REDISTp = 20;
+        int REDIST_TRIES = 10;
 
         int turSize = 2;
         int elitesNum = 3;

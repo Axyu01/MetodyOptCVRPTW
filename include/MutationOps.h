@@ -15,6 +15,7 @@ class MutationOps
         static Solution* GreadyTrack(Problem* problem,Solution* s);
         static Solution* OptimalTrack(Problem* problem,Solution* s);
         static Solution* Repair(Problem* problem,Solution* s,bool tryBefore,bool tryAfter,bool useDemand,int OPT_TRACK_MAX_LOCATION_COUNT);
+        static Solution* RedistributeLocations(Problem* problem,Solution* s,int tries);
         const static int SWAP_ID = 0;
         const static int INVERSE_ID = 1;
 

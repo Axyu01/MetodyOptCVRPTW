@@ -35,6 +35,8 @@ void test_evo(Problem* problem,int debug_interval,bool isInfinite)
     bool REPAIR_USE_DEMAND = false;
     int OPTp = 30;
     int OPT_TRACK_MAX_LOCATION_COUNT = 1;
+    int REDISTp = 80;
+    int REDIST_TRIES = 8;
     int turSize = 2;
     int elitesNum = 1;
     int MUT_ID = MutationOps::SWAP_ID;//MutationOps::INVERSE_ID;
@@ -52,6 +54,8 @@ void test_evo(Problem* problem,int debug_interval,bool isInfinite)
     evo->REPAIR_USE_DAMAND = REPAIR_USE_DEMAND;
     evo->OPTp = OPTp;
     evo->turSize = turSize;
+    evo->REDISTp = REDISTp;
+    evo->REDIST_TRIES;
     evo->elitesNum = elitesNum;
     evo->MUT_ID = MUT_ID;
     evo->CROSS_ID = CROSS_ID;

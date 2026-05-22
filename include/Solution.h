@@ -15,6 +15,7 @@ class Solution
         double penalty = 0;
         void print();
         void Insert(int g,int position);
+        void Remove(int position);
 
     protected:
 

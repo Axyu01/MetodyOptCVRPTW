@@ -100,3 +100,24 @@ void Solution::Insert(int gene,int position)
     this->penalty = 0;
     delete[] oldGenome;
 }
+void Solution::Remove(int position)
+{
+    if (position < 0) position = 0;
+    if (position >= size) position = size-1; // Clamp to max bound
+
+    int* oldGenome = Genome;
+    size-=1;
+
+    //Copy and delete
+    Genome = new int[size];
+    for(int g =0;g<size;g++)
+    {
+        if(g<position)
+            Genome[g] = oldGenome[g];
+        else
+            Genome[g] = oldGenome[g+1];
+    }
+    this->eval = 0;
+    this->penalty = 0;
+    delete[] oldGenome;
+}

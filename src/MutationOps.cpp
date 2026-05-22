@@ -639,6 +639,71 @@ double* MutationOps::FindRecyclableGenes(Problem* problem,Solution* s)
 
     return isGeneRecyclable;
 }
+Solution* MutationOps::RedistributeLocations(Problem* problem,Solution* s,int tries)
+{
+    Solution** tracks = FindTracks(problem,s);
+    int* demand = new int[problem->MAX_VEHICLES];
+    for(int i = 0;i<problem->MAX_VEHICLES;i++)
+    {
+            demand[i] = 0;
+    }
+    int tracksCount = -1;
+    //find how many tracks are there
+    for(int i=0;i<=problem->MAX_VEHICLES;i++)
+    {
+        Solution* track = nullptr;
+        if(i != problem->MAX_VEHICLES)
+            track = tracks[i];
+
+        if(track == nullptr)
+        {
+            tracksCount = i;
+            break;
+        }
+    }
+    if(tracksCount == -1)
+        return new Solution(s);
+    if(tracksCount <= 1)
+    {
+        for(int i=0;i<tracksCount;i++)
+            delete tracks[i];
+        delete[] tracks;
+        delete[] demand;
+        return new Solution(s);
+    }
+    for(int i=0;i<tries;i++)
+    {
+        int donor = rand()%tracksCount;
+        if(tracks[donor]->size <=1)
+            continue;
+        int pacient = rand()%tracksCount;
+        while(donor == pacient)
+        {
+            pacient = rand()%tracksCount;
+        }
+
+        if(tracks[donor]->size<tracks[pacient]->size)
+        {
+            int temp = donor;
+            donor = pacient;
+            pacient = temp;
+        }
+        int geneRemovePos = rand()%tracks[donor]->size;
+        int geneVal = tracks[donor]->Genome[geneRemovePos];
+        int geneInsertPos = rand()%(tracks[pacient]->size+1);
+        tracks[donor]->Remove(geneRemovePos);
+        tracks[pacient]->Insert(geneVal,geneInsertPos);
+    }
+
+    Solution* sRedistributed = ReconstructSolutionFromTracks(problem,tracks);
+    //Manage memory
+    for(int i=0;i<tracksCount;i++)
+        delete tracks[i];
+    delete[] tracks;
+    delete[] demand;
+
+    return sRedistributed;
+}
 void MutationOps::DEBUG_CheckSolution(Problem* problem,Solution* checked,Solution* original,Solution** tracks)
 {
     //check for debugging purposes
