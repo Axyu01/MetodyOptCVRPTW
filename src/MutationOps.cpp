@@ -132,7 +132,7 @@ Solution *MutationOps::ReconstructSolutionFromTracks(Problem *problem,
   // Fill rest with zero's
   int dummy;
   if (track_start == sOptimized->Genome[track_start - 1])
-    cin >> dummy;
+//    cin >> dummy;
   for (int i = track_start; i < sOptimized->size; i++) {
     sOptimized->Genome[i] = i;
   }
@@ -661,8 +661,7 @@ void MutationOps::DEBUG_CheckSolution(Problem *problem, Solution *checked,
         break;
       tracks[t]->print();
     }
-    cout << endl << "Press any key to continue..." << endl;
-    getchar();
+    cout << endl << "(continuing)" << endl;
   }
 }
 void MutationOps::DEBUG_PRINT_Tracks(Problem *problem, Solution **tracks) {
