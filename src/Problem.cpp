@@ -100,7 +100,7 @@ void Problem::Load(string path, int problemSize) {
   getline(file, line); // nothing
   getline(file, line); //"CUSTOMER"
   getline(file, line); //"CUST NO.  XCOORD.   YCOORD.    DEMAND   READY TIME DUE
-                       //DATE   SERVICE   TIME"
+                       // DATE   SERVICE   TIME"
   getline(file, line); // nothing
 
   ReadyTime = new int[problemSize + 1];
@@ -113,28 +113,31 @@ void Problem::Load(string path, int problemSize) {
   // getting every location info
   for (int l = 0; l < problemSize + 1; l++) {
     int CUST_NO = -1;
-    getline(file, line); // get location data
-    // debug: show raw line
-    cout << "[DEBUG LOAD LINE] l=" << l << " raw='" << line << "'" << endl;
-    stringstream ss_l(line);
-    if (!(ss_l >> CUST_NO >> COORD_X[l] >> COORD_Y[l] >> Demand[l] >> ReadyTime[l] >>
-          DueDate[l] >> ServiceTime[l])) {
-      // parsing failed - try to skip empty/whitespace lines until a valid one
-      bool ok = false;
-      for (int retry = 0; retry < 5; ++retry) {
-        if (!getline(file, line)) break;
-        cout << "[DEBUG LOAD RETRY] l=" << l << " raw='" << line << "'" << endl;
-        ss_l.clear(); ss_l.str(line);
-        if (ss_l >> CUST_NO >> COORD_X[l] >> COORD_Y[l] >> Demand[l] >> ReadyTime[l] >>
-            DueDate[l] >> ServiceTime[l]) { ok = true; break; }
-      }
-      if (!ok) {
-        cerr << "[ERROR] Failed to parse location line for l=" << l << ", leaving zeros\n";
-        COORD_X[l] = COORD_Y[l] = Demand[l] = ReadyTime[l] = DueDate[l] = ServiceTime[l] = 0;
-      }
+    // read next non-empty line containing location data
+    while (getline(file, line)) {
+      // skip lines that are empty or whitespace-only
+      bool allspace = true;
+      for (char c : line)
+        if (!isspace((unsigned char)c)) {
+          allspace = false;
+          break;
+        }
+      if (!allspace)
+        break;
     }
-    cout << "[DEBUG LOAD] l=" << l << " x=" << COORD_X[l] << " y=" << COORD_Y[l]
-         << endl;
+    if (line.empty()) {
+      // failed to read line, fill zeros
+      COORD_X[l] = COORD_Y[l] = Demand[l] = ReadyTime[l] = DueDate[l] =
+          ServiceTime[l] = 0;
+      continue;
+    }
+    stringstream ss_l(line);
+    if (!(ss_l >> CUST_NO >> COORD_X[l] >> COORD_Y[l] >> Demand[l] >>
+          ReadyTime[l] >> DueDate[l] >> ServiceTime[l])) {
+      // parsing failed - throw ERROR
+      std::cerr << "Error parsing line: " << line << std::endl;
+      exit(1);
+    }
   }
 
   // calculate distance matrix
