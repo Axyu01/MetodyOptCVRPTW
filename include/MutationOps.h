@@ -1,34 +1,40 @@
 #ifndef MUTATIONOPS_H
 #define MUTATIONOPS_H
-#include "Solution.h"
 #include "Problem.h"
+#include "Solution.h"
 
-class MutationOps
-{
-    public:
-        MutationOps();
-        virtual ~MutationOps();
-        static Solution* Swap(Solution* s);
-        static Solution* Swap(Solution* s,int numOfSwaps);
-        static Solution* Inverse(Solution* s);
-        static Solution* OptimizeTracks(Problem* problem,Solution* s,int OPT_TRACK_MAX_LOCATION_COUNT);
-        static Solution* GreadyTrack(Problem* problem,Solution* s);
-        static Solution* OptimalTrack(Problem* problem,Solution* s);
-        static Solution* Repair(Problem* problem,Solution* s,bool tryBefore,bool tryAfter,bool useDemand,int OPT_TRACK_MAX_LOCATION_COUNT);
-        static Solution* RedistributeLocations(Problem* problem,Solution* s,int tries);
-        const static int SWAP_ID = 0;
-        const static int INVERSE_ID = 1;
+class MutationOps {
+public:
+  MutationOps();
+  virtual ~MutationOps();
+  static Solution *Swap(Solution *s);
+  static Solution *Swap(Solution *s, int numOfSwaps);
+  static Solution *Inverse(Solution *s);
+  static Solution *OptimizeTracks(Problem *problem, Solution *s,
+                                  int OPT_TRACK_MAX_LOCATION_COUNT);
+  static Solution *GreadyTrack(Problem *problem, Solution *s);
+  static Solution *OptimalTrack(Problem *problem, Solution *s);
+  static Solution *Repair(Problem *problem, Solution *s, bool tryBefore,
+                          bool tryAfter, bool useDemand,
+                          int OPT_TRACK_MAX_LOCATION_COUNT);
+  static Solution *RedistributeLocations(Problem *problem, Solution *s,
+                                         int tries);
+  const static int SWAP_ID = 0;
+  const static int INVERSE_ID = 1;
 
-    protected:
-        static void DEBUG_CheckSolution(Problem* problem,Solution* checked,Solution* original,Solution** tracks);
-        static void DEBUG_PRINT_Tracks(Problem*problem,Solution** tracks);
-        static Solution** FindTracks(Problem* problem,Solution* s);
-        static Solution* ReconstructSolutionFromTracks(Problem* problem,Solution** tracks);
-        static Solution* OptimalTrack(Problem* problem,Solution* checked,int* possibleLocations,int lSize);
-        static double* FindRecyclableGenes(Problem* problem,Solution* s);
-        static bool* RestructureRecycledGenes(Problem* problem,Solution* s);
+protected:
+  static void DEBUG_CheckSolution(Problem *problem, Solution *checked,
+                                  Solution *original, Solution **tracks);
+  static void DEBUG_PRINT_Tracks(Problem *problem, Solution **tracks);
+  static Solution **FindTracks(Problem *problem, Solution *s);
+  static Solution *ReconstructSolutionFromTracks(Problem *problem,
+                                                 Solution **tracks);
+  static Solution *OptimalTrack(Problem *problem, Solution *checked,
+                                int *possibleLocations, int lSize);
+  static double *FindRecyclableGenes(Problem *problem, Solution *s);
+  static bool *RestructureRecycledGenes(Problem *problem, Solution *s);
 
-    private:
+private:
 };
 
 #endif // MUTATIONOPS_H

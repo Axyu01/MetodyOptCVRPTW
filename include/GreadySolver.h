@@ -1,7 +1,7 @@
 #ifndef GREADYSOLVER_H
 #define GREADYSOLVER_H
-#include "Solution.h"
 #include "Problem.h"
+#include "Solution.h"
 /*
 class GreadySolver
 {
