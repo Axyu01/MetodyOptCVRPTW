@@ -166,13 +166,11 @@ int main()
     }
     problem->EstimateSolution(s);
     s->print();
-    s->print();
     //Solution* opt = MutationOps::OptimalTrack(problem,s);
     //opt->print();
 
     //test_sa(problem);
     test_evo(problem,100,false);
-
     getchar();
 
     return 0;
