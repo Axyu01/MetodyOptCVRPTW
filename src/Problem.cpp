@@ -130,7 +130,6 @@ void Problem::Load(string path,int problemSize)
     for(int l1 = 0;l1<problemSize+1;l1++)
     {
         DistanceMatrix[l1]  = new double[problemSize+1];
-        cout << endl;
         for(int l2 = 0;l2<problemSize+1;l2++)
         {
             DistanceMatrix[l1][l2]=sqrt(pow((COORD_X[l1]-COORD_X[l2]),2)+pow((COORD_Y[l1]-COORD_Y[l2]),2));
