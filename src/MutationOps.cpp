@@ -3,6 +3,7 @@
 #include <iostream>
 #include <cstdio>
 #include <list>
+#include "EvoAlg.h"
 
 using namespace std;
 MutationOps::MutationOps()
@@ -661,6 +662,18 @@ Solution* MutationOps::RedistributeLocations(Problem* problem,Solution* s,int tr
             break;
         }
     }
+    //shufffle tracks
+    {
+        for(int i=0;i<20;i++)
+        {
+            int t1 = 0;
+            Solution* st1 = tracks[t1];
+            int t2 = rand()%tracksCount;
+            Solution* st2  = tracks[t2];
+            tracks[t1] = st2;
+            tracks[t2] = st1;
+        }
+    }
     if(tracksCount == -1)
         return new Solution(s);
     if(tracksCount <= 1)
@@ -674,8 +687,6 @@ Solution* MutationOps::RedistributeLocations(Problem* problem,Solution* s,int tr
     for(int i=0;i<tries;i++)
     {
         int donor = rand()%tracksCount;
-        if(tracks[donor]->size <=1)
-            continue;
         int pacient = rand()%tracksCount;
         while(donor == pacient)
         {
@@ -688,11 +699,23 @@ Solution* MutationOps::RedistributeLocations(Problem* problem,Solution* s,int tr
             donor = pacient;
             pacient = temp;
         }
+        if(tracks[donor]->size <=1)
+            continue;
         int geneRemovePos = rand()%tracks[donor]->size;
         int geneVal = tracks[donor]->Genome[geneRemovePos];
+        int geneTown = geneVal+1;
+        if(geneVal>=problem->SIZE)
+            geneTown = 0;
+        int townDemand = problem->Demand[geneTown];
+
         int geneInsertPos = rand()%(tracks[pacient]->size+1);
-        tracks[donor]->Remove(geneRemovePos);
-        tracks[pacient]->Insert(geneVal,geneInsertPos);
+        if(demand[pacient] +townDemand<= problem->CAPACITY)
+        {
+            tracks[donor]->Remove(geneRemovePos);
+            tracks[pacient]->Insert(geneVal,geneInsertPos);
+            demand[donor] -=townDemand;
+            demand[pacient]+=townDemand;
+        }
     }
 
     Solution* sRedistributed = ReconstructSolutionFromTracks(problem,tracks);

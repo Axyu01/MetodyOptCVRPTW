@@ -26,17 +26,17 @@ void test_opt()
 void test_evo(Problem* problem,int debug_interval,bool isInfinite)
 {
     cout<<endl<<endl<<"_____EVO TEST____";
-    int popSize = 33;//50,100,500
+    int popSize = 100;//50,100,500
     int Xp = 75;
     int Mp = 25;
-    int REPAIRp = 70;
-    bool REPAIR_TRY_BEFORE = false;
-    bool REPAIR_TRY_AFTER = false;
-    bool REPAIR_USE_DEMAND = false;
-    int OPTp = 30;
-    int OPT_TRACK_MAX_LOCATION_COUNT = 1;
-    int REDISTp = 80;
-    int REDIST_TRIES = 8;
+    int REPAIRp = 4;
+    bool REPAIR_TRY_BEFORE = true;
+    bool REPAIR_TRY_AFTER = true;
+    bool REPAIR_USE_DEMAND = true;
+    int OPTp = 4;
+    int OPT_TRACK_MAX_LOCATION_COUNT = 10;
+    int REDISTp = 4;
+    int REDIST_TRIES = 4;
     int turSize = 2;
     int elitesNum = 1;
     int MUT_ID = MutationOps::SWAP_ID;//MutationOps::INVERSE_ID;
@@ -61,10 +61,20 @@ void test_evo(Problem* problem,int debug_interval,bool isInfinite)
     evo->CROSS_ID = CROSS_ID;
 
 
+    int no_improve = 0;
+    double best_eval = 0;
     evo->Init();
     evo->Eval();
-    evo->GetBest()->print();
-    evo->GetWorst()->print();
+    {
+        Solution* startBest = evo->GetBest();
+        startBest->print();
+        best_eval = startBest->eval;
+        Solution* startWorst  = evo->GetWorst();
+        startWorst->print();
+        delete startBest;
+        delete startWorst;
+    }
+
     cout<<endl<<evo->GetAvarage();
     string file_name = "out/evo_";
     file_name += problem->NAME;
@@ -79,23 +89,34 @@ void test_evo(Problem* problem,int debug_interval,bool isInfinite)
         //Evo Loop
         evo->Evolve();
         evo->Eval();
-        //Debugging
+
+        Solution* best = evo->GetBest();
+        Solution* worst = evo->GetWorst();
+        int avg = evo->GetAvarage();
+         //Debugging
         if(debug_interval >0 && i%debug_interval == 0)
         {
-            cout<<endl<<endl<<"PROGRESS "<<i<<" | "<<loops<<endl;
+            cout<<endl<<endl<<"PROGRESS "<<i<<" | "<<loops<<" | LAST IMPROVE: "<<no_improve<<" ITERATIONS"<<endl;
             cout<<endl<<"AVG:"<<evo->GetAvarage();
-            cout<<endl<<"Best:";
+            cout<<endl<<"BEST:";
             Solution* best = evo->GetBest();
             best->print();
             delete best;
         }
+        if(best->eval < best_eval)
+        {
+            no_improve =0;
+            best_eval = best->eval;
+        }
+        else
+        {
+            ++no_improve;
+        }
         //Logging
-        Solution* best = evo->GetBest();
-        Solution* worst = evo->GetWorst();
-        int avg = evo->GetAvarage();
         /*bestLogger.Log(best);
         worstLogger.Log(worst);
         avgLogger.Log(avg);*/
+
         delete best;
         delete worst;
     }
@@ -171,7 +192,7 @@ int main()
     //opt->print();
 
     //test_sa(problem);
-    test_evo(problem,100,false);
+    test_evo(problem,100,true);
 
     getchar();
 
