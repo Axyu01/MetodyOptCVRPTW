@@ -651,21 +651,21 @@ void MutationOps::DEBUG_CheckSolution(Problem *problem, Solution *checked,
     }
   }
   if (foundError) {
-    cout << endl << "BROKEN SOLUTION ID:" << foundErrorID;
+    cout << endl << "[repair] broken solution: missing gene " << foundErrorID;
     checked->print();
-    cout << endl << "ORIGINAL SOLUTION:";
+    cout << endl << "[repair] original solution:";
     original->print();
-    cout << endl << "OPTIMIZED TRACKS:";
+    cout << endl << "[repair] tracks used for reconstruction:";
     for (int t = 0; t < problem->MAX_VEHICLES; t++) {
       if (tracks[t] == nullptr)
         break;
       tracks[t]->print();
     }
-    cout << endl << "(continuing)" << endl;
+    cout << endl << "[repair] continuing" << endl;
   }
 }
 void MutationOps::DEBUG_PRINT_Tracks(Problem *problem, Solution **tracks) {
-  cout << endl << "TRACKS";
+  cout << endl << "[tracks] current split:";
   int numOfTracks = problem->MAX_VEHICLES;
   for (int t = 0; t < problem->MAX_VEHICLES; t++) {
     if (tracks[t] == nullptr) {
@@ -674,5 +674,5 @@ void MutationOps::DEBUG_PRINT_Tracks(Problem *problem, Solution **tracks) {
     }
     tracks[t]->print();
   }
-  cout << endl << "COUNT:" << numOfTracks;
+  cout << endl << "[tracks] count: " << numOfTracks;
 }

@@ -51,16 +51,16 @@ Solution::Solution(Solution *s, int size) {
 Solution::~Solution() { delete[] Genome; }
 void Solution::print() {
   if (size <= 0 || Genome == nullptr) {
-    cout << "\n| Empty Solution |";
+    cout << "\n[solution] empty";
     return;
   }
-  cout << "\n| ";
+  cout << "\n[solution] genome: ";
   for (int g = 0; g < size - 1; g++) {
-    cout << Genome[g] << ":";
+    cout << Genome[g] << " -> ";
   }
   cout << Genome[size - 1];
-  cout << " | size: " << size << " | eval: " << eval
-       << " | penalty: " << penalty << " |";
+  cout << " | nodes: " << size << " | cost: " << eval
+       << " | penalty: " << penalty;
 }
 void Solution::Insert(int gene, int position) {
   if (position < 0)

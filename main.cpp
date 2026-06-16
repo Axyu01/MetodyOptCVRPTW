@@ -20,12 +20,12 @@ void test_opt()
     s_opt->Genome[1] = 2;
     s_opt->Genome[2] = 3;
     s_opt->Genome[3] = 1;
-    cout << problem->EstimateSolution(s_opt) <<endl;
+    cout << "[test_opt] cost: " << problem->EstimateSolution(s_opt) << endl;
     s_opt->print();
 }
 void test_evo(Problem* problem,int debug_interval,bool isInfinite)
 {
-    cout<<endl<<endl<<"_____EVO TEST____";
+    cout<<endl<<endl<<"[evo] evolutionary test"<<endl;
     int popSize = 33;//50,100,500
     int Xp = 75;
     int Mp = 25;
@@ -63,9 +63,11 @@ void test_evo(Problem* problem,int debug_interval,bool isInfinite)
 
     evo->Init();
     evo->Eval();
+    cout << "[evo] initial best:";
     evo->GetBest()->print();
+    cout << endl << "[evo] initial worst:";
     evo->GetWorst()->print();
-    cout<<endl<<evo->GetAvarage();
+    cout << endl << "[evo] initial average cost: " << evo->GetAvarage() << endl;
     string file_name = "out/evo_";
     file_name += problem->NAME;
 
@@ -82,9 +84,9 @@ void test_evo(Problem* problem,int debug_interval,bool isInfinite)
         //Debugging
         if(debug_interval >0 && i%debug_interval == 0)
         {
-            cout<<endl<<endl<<"PROGRESS "<<i<<" | "<<loops<<endl;
-            cout<<endl<<"AVG:"<<evo->GetAvarage();
-            cout<<endl<<"Best:";
+            cout<<endl<<endl<<"[evo] checkpoint " << i << " of " << loops << endl;
+            cout << "[evo] average cost: " << evo->GetAvarage() << endl;
+            cout << "[evo] best solution:";
             Solution* best = evo->GetBest();
             best->print();
             delete best;
@@ -99,12 +101,11 @@ void test_evo(Problem* problem,int debug_interval,bool isInfinite)
         delete best;
         delete worst;
     }
-    cout<<endl<<"ALL BEST:";
+    cout<<endl<<"[evo] final best:";
     evo->GetBest()->print();
-    cout<<endl<<"LAST WORST:";
+    cout<<endl<<"[evo] final worst:";
     evo->GetWorst()->print();
-    cout<<endl<<"LAST AVG:";
-    cout<<endl<<evo->GetAvarage();
+    cout<<endl<<"[evo] final average cost: "<<evo->GetAvarage();
 }
 void test_random(Problem* problem)
 {
@@ -123,13 +124,13 @@ void test_random(Problem* problem)
         else
             delete s;
     }
-    cout <<"Random avg:"<< sum/tests << endl;
+    cout <<"[random] average cost: "<< sum/tests << endl;
     best->print();
     delete best;
 }
 void test_sa(Problem* problem)
 {
-    cout <<endl<<endl<<"_____SA TEST____";
+    cout <<endl<<endl<<"[sa] simulated annealing test"<<endl;
     float startTemp = problem->PREFFERED_GENOME_SIZE*problem->PREFFERED_GENOME_SIZE*problem->PREFFERED_GENOME_SIZE;
     SAAlg sa(problem,100);
 
@@ -150,13 +151,14 @@ void test_sa(Problem* problem)
             //cout <<endl<<sa.currentIteration<<"/"<<sa.maxIterations<<" | temp: "<<sa.currentTemp<<" |new best:"<<best<<endl;
         }
     }
+    cout << "[sa] best solution:";
     sa.bestSolution->print();
 }
 int main()
 {
     srand(time(0));
 
-    Problem* problem = new Problem("problems/solomon-100/c101.txt",100);
+    Problem* problem = new Problem("./problems/tiny/tiny3.txt",3);
     problem->EARLY_ARRIVAL_PENALTY_MULTIPLAYER = 0;
     problem->LATE_ARRIVAL_PENALTY_MULTIPLAYER = 0.01;
     Solution* s = new Solution(problem->SIZE);
@@ -164,6 +166,7 @@ int main()
     {
         s->Genome[i] = i;
     }
+    cout << "[main] baseline route evaluation" << endl;
     problem->EstimateSolution(s);
     s->print();
     //Solution* opt = MutationOps::OptimalTrack(problem,s);
@@ -171,7 +174,6 @@ int main()
 
     //test_sa(problem);
     test_evo(problem,100,false);
-    getchar();
 
     return 0;
 }

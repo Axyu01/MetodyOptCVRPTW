@@ -6,9 +6,9 @@ using namespace std;
 Logger::Logger(string file_name) {
   _file.open(file_name, ios::out | ios::trunc);
   if (!_file.is_open())
-    cout << "Cannot open a " << file_name << " file!\n";
+    cout << "[logger] cannot open file: " << file_name << '\n';
   else
-    cout << file_name << " opened successfully!\n";
+    cout << "[logger] opened: " << file_name << '\n';
 }
 
 Logger::~Logger() { _file.close(); }
