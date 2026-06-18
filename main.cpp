@@ -103,6 +103,41 @@ double run_one(Problem* problem, const EvoConfig& cfg,
     return cost;
 }
 
+// Stagnation-based run: stops after stag_gens generations with no improvement,
+// or after max_evals total evaluations (whichever comes first).
+double run_one_stagnation(Problem* problem, const EvoConfig& cfg,
+                          const string& csv_path,
+                          int stag_gens, int max_evals) {
+    Logger log(csv_path);
+    EvoAlg* evo = make_evo(problem, cfg);
+    evo->Init(); evo->Eval();
+
+    Solution* b0 = evo->GetBest(); Solution* w0 = evo->GetWorst();
+    double best_eval = b0->eval;
+    log.Log(0, best_eval, evo->GetAvarage(), w0->eval);
+    delete b0; delete w0;
+
+    int no_improve = 0;
+    int max_gens = max_evals / cfg.popSize;
+
+    for (int i = 1; i <= max_gens && no_improve < stag_gens; i++) {
+        evo->Evolve(); evo->Eval();
+        Solution* b = evo->GetBest(); Solution* w = evo->GetWorst();
+        if (b->eval < best_eval - 1e-9) {
+            best_eval = b->eval;
+            no_improve = 0;
+        } else {
+            no_improve++;
+        }
+        log.Log(i, b->eval, evo->GetAvarage(), w->eval);
+        delete b; delete w;
+    }
+    Solution* fin = evo->GetBest();
+    double cost = fin->eval;
+    delete fin; delete evo;
+    return cost;
+}
+
 // N_RUNS parallel trials on one instance. Returns mean final-best.
 double run_instance(const Instance& inst, const EvoConfig& cfg,
                     const string& tag, int budget, const string& out_dir) {
@@ -316,22 +351,125 @@ EvoConfig tune_pipeline(EvoConfig base, bool with_ops,
     return cfg;
 }
 
+// ─── Final comparison ────────────────────────────────────────────────────────
+
+const int STAG_GENS = 3000;    // stop if no improvement for this many generations
+const int MAX_EVALS = 1000000; // hard cap per run
+
+const Instance CMP_INSTANCES[] = {
+    {"./problems/solomon-100/c101.txt",  100, "c101"},
+    {"./problems/solomon-100/c102.txt",  100, "c102"},
+    {"./problems/solomon-100/c201.txt",  100, "c201"},
+    {"./problems/solomon-100/c202.txt",  100, "c202"},
+    {"./problems/solomon-100/r101.txt",  100, "r101"},
+    {"./problems/solomon-100/r102.txt",  100, "r102"},
+    {"./problems/solomon-100/r201.txt",  100, "r201"},
+    {"./problems/solomon-100/r202.txt",  100, "r202"},
+    {"./problems/solomon-100/rc101.txt", 100, "rc101"},
+    {"./problems/solomon-100/rc102.txt", 100, "rc102"},
+    {"./problems/solomon-100/rc201.txt", 100, "rc201"},
+    {"./problems/solomon-100/rc202.txt", 100, "rc202"},
+};
+const int N_CMP = 12;
+
+// Best configs found by tuning (from out/v3/tuning_log.txt)
+EvoConfig best_ops_on() {
+    EvoConfig c;
+    c.popSize = 50; c.CROSS_ID = CrossOps::OX_ID;
+    c.Xp = 75; c.Mp = 25; c.turSize = 2; c.elitesNum = 1;
+    c.REPAIRp = 30; c.OPTp = 10; c.REDISTp = 100;
+    return c;
+}
+EvoConfig best_ops_off() {
+    EvoConfig c;
+    c.popSize = 50; c.CROSS_ID = CrossOps::OX_ID;
+    c.Xp = 75; c.Mp = 25; c.turSize = 2; c.elitesNum = 1;
+    c.REPAIRp = 0; c.OPTp = 0; c.REDISTp = 0;
+    return c;
+}
+
+// Runs N_RUNS stagnation-based trials on one instance in parallel.
+double cmp_instance(const Instance& inst, const EvoConfig& cfg,
+                    const string& label, const string& out_dir) {
+    Problem* problem = new Problem(inst.path, inst.size);
+    problem->EARLY_ARRIVAL_PENALTY_MULTIPLAYER = 0;
+    problem->LATE_ARRIVAL_PENALTY_MULTIPLAYER  = 0.01;
+
+    vector<future<double>> futs;
+    for (int r = 0; r < N_RUNS; r++) {
+        string csv = out_dir + "/" + inst.name + "_" + label + "_" + to_string(r) + ".csv";
+        futs.push_back(async(launch::async, [&, csv]() {
+            return run_one_stagnation(problem, cfg, csv, STAG_GENS, MAX_EVALS);
+        }));
+    }
+    double sum = 0;
+    for (auto& f : futs) sum += f.get();
+    delete problem;
+    double avg = sum / N_RUNS;
+    {
+        lock_guard<mutex> lk(cout_mtx);
+        cout << "  " << label << "  " << inst.name
+             << "  avg=" << fixed << setprecision(1) << avg << endl;
+    }
+    return avg;
+}
+
+void run_comparison() {
+    const string OUT = "out/compare";
+    const string ON_DIR  = OUT + "/on";
+    const string OFF_DIR = OUT + "/off";
+    for (auto& d : {OUT, ON_DIR, OFF_DIR})
+        system(("mkdir -p " + d).c_str());
+
+    ofstream summary(OUT + "/summary.txt");
+    summary << "FINAL COMPARISON\n"
+            << "Stagnation: " << STAG_GENS << " gens  Max evals: " << MAX_EVALS
+            << "  Runs per instance: " << N_RUNS << "\n\n";
+
+    auto run_config = [&](const string& label, const EvoConfig& cfg,
+                          const string& dir) {
+        cout << "\n=== " << label << " ===" << endl;
+        summary << "=== " << label << " ===\n";
+
+        // All 12 instances in parallel (12x5 = 60 threads)
+        future<double> futs[N_CMP];
+        for (int i = 0; i < N_CMP; i++)
+            futs[i] = async(launch::async, [&, i]() {
+                return cmp_instance(CMP_INSTANCES[i], cfg, label, dir);
+            });
+
+        double total = 0;
+        for (int i = 0; i < N_CMP; i++) {
+            double avg = futs[i].get();
+            string line = "  " + CMP_INSTANCES[i].name
+                        + "  avg=" + to_string((int)avg);
+            summary << line << "\n";
+            total += avg;
+        }
+        double overall = total / N_CMP;
+        string ol = "OVERALL avg=" + to_string((int)overall);
+        cout << ol << endl;
+        summary << ol << "\n\n";
+        return overall;
+    };
+
+    double on_avg  = run_config("ops_on",  best_ops_on(),  ON_DIR);
+    double off_avg = run_config("ops_off", best_ops_off(), OFF_DIR);
+
+    string verdict = on_avg < off_avg ? "ops_on wins" : "ops_off wins";
+    cout << "\n" << verdict
+         << "  (on=" << fixed << setprecision(1) << on_avg
+         << "  off=" << off_avg << ")" << endl;
+    summary << verdict
+            << "  (on=" << fixed << setprecision(1) << on_avg
+            << "  off=" << off_avg << ")\n";
+    summary.close();
+}
+
 // ─── Main ────────────────────────────────────────────────────────────────────
 
 int main()
 {
-    const string V = "out/v3";
-    const string V_OFF = V + "/off";
-    const string V_ON  = V + "/on";
-    for (auto& d : {V, V_OFF, V_ON})
-        system(("mkdir -p " + d).c_str());
-
-    // Pipeline A: EA + custom operators (first so results come in quickly)
-    EvoConfig best_on  = tune_pipeline(ops_on_base(),  true,  T_BUDGET, V_ON);
-
-    // Pipeline B: plain EA - no custom operators
-    EvoConfig best_off = tune_pipeline(ops_off_base(), false, T_BUDGET, V_OFF);
-
-    cout << "\nAll tuning done. Results saved to " << V << endl;
+    run_comparison();
     return 0;
 }
