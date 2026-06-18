@@ -1,152 +1,67 @@
 #include <iostream>
+#include <fstream>
 #include <string>
+#include <vector>
 #include <cstdlib>
 #include <ctime>
 #include <algorithm>
 #include <iomanip>
 #include <future>
-#include <vector>
 #include <mutex>
 #include "Problem.h"
-#include "GreadySolver.h"
 #include "CrossOps.h"
 #include "MutationOps.h"
 #include "EvoAlg.h"
 #include "Logger.h"
-#include "SAAlg.h"
 #include "EVOTest.h"
 using namespace std;
 
 static mutex cout_mtx;
 
-// -------------------------------------------------------
-// Brute-force (tiny instances only, up to ~8 customers)
-// -------------------------------------------------------
-Solution* brute_force(Problem* problem)
-{
-    int n = problem->SIZE;
-    int* perm = new int[n];
-    for (int i = 0; i < n; i++) perm[i] = i;
-    Solution* best = nullptr;
-    do {
-        Solution* s = new Solution(n);
-        for (int i = 0; i < n; i++) s->Genome[i] = perm[i];
-        problem->EstimateSolution(s);
-        if (best == nullptr || s->eval < best->eval) { delete best; best = s; }
-        else { delete s; }
-    } while (next_permutation(perm, perm + n));
-    delete[] perm;
-    return best;
-}
+// ─── Constants ───────────────────────────────────────────────────────────────
 
-// -------------------------------------------------------
-// Tiny benchmark verification
-// -------------------------------------------------------
-void verify_tiny(const string& path, int size)
-{
-    cout << "\n==============================" << endl;
-    cout << "Instance: " << path << endl;
+const int    N_RUNS   = 5;
+const int    T_BUDGET = 200'000;   // evals per run during tuning
 
-    Problem* problem = new Problem(path, size);
-    problem->EARLY_ARRIVAL_PENALTY_MULTIPLAYER = 0;
-    problem->LATE_ARRIVAL_PENALTY_MULTIPLAYER  = 0.01;
+struct Instance { string path; int size; string name; };
+const Instance INSTANCES[] = {
+    {"./problems/solomon-100/c101.txt",  100, "c101"},
+    {"./problems/solomon-100/r101.txt",  100, "r101"},
+    {"./problems/solomon-100/rc101.txt", 100, "rc101"},
+};
+const int N_INSTANCES = 3;
 
-    Solution* opt = brute_force(problem);
-    cout << "[brute force] optimal:"; opt->print();
-    double optimal_cost = opt->eval;
-    delete opt;
-
-    int popSize = 33;
-    EvoAlg* evo = new EvoAlg(problem, popSize);
-    int budget = problem->SIZE * problem->SIZE * EVOTest::STANDARD_MULTIPLAYER;
-    evo->Xp = 75; evo->Mp = 25; evo->REPAIRp = 70;
-    evo->OPTp = 30; evo->turSize = 2; evo->REDISTp = 80;
-    evo->REDIST_TRIES = 8; evo->elitesNum = 1;
-    evo->MUT_ID   = MutationOps::SWAP_ID;
-    evo->CROSS_ID = CrossOps::OX_ID;
-    evo->Init(); evo->Eval();
-    int loops = budget / popSize;
-    for (int i = 0; i < loops; i++) { evo->Evolve(); evo->Eval(); }
-    Solution* ea_best = evo->GetBest();
-    cout << "[ea]          best:"; ea_best->print();
-    double ea_cost = ea_best->eval;
-    if (ea_cost <= optimal_cost + 1e-6)
-        cout << "[PASS] EA matched optimal (" << optimal_cost << ")" << endl;
-    else
-        cout << "[FAIL] EA got " << ea_cost << ", optimal is " << optimal_cost << endl;
-
-    delete ea_best; delete evo; delete problem;
-}
-
-// -------------------------------------------------------
-// Tuning infrastructure
-// -------------------------------------------------------
-
-// Runs one trial, logs gen;best;avg;worst per generation, returns final best cost.
-double run_experiment(Problem* problem, EvoAlg* evo, const string& csv_path, int budget)
-{
-    Logger log(csv_path);
-    log.Log(0, evo->GetBest()->eval, evo->GetAvarage(), evo->GetWorst()->eval);
-
-    int loops = budget / evo->popSize;
-    for (int i = 1; i <= loops; i++) {
-        evo->Evolve();
-        evo->Eval();
-        Solution* best  = evo->GetBest();
-        Solution* worst = evo->GetWorst();
-        double avg      = evo->GetAvarage();
-        log.Log(i, best->eval, avg, worst->eval);
-        delete best; delete worst;
-    }
-    Solution* final_best = evo->GetBest();
-    double cost = final_best->eval;
-    delete final_best;
-    return cost;
-}
+// ─── EvoConfig ───────────────────────────────────────────────────────────────
 
 struct EvoConfig {
-    int popSize;
-    int Xp;
-    int Mp;
-    int turSize;
-    int elitesNum;
-    int MUT_ID;
-    int CROSS_ID;
-    // custom operators
-    int REPAIRp;
-    int OPTp;
-    int OPT_TRACK_MAX_LOCATION_COUNT;
-    int REDISTp;
-    int REDIST_TRIES;
+    int popSize   = 50;
+    int Xp        = 75;
+    int Mp        = 25;
+    int turSize   = 2;
+    int elitesNum = 1;
+    int MUT_ID    = MutationOps::SWAP_ID;
+    int CROSS_ID  = CrossOps::OX_ID;
+    // custom operators (0 = disabled)
+    int REPAIRp   = 0;
+    int OPTp      = 0;
+    int REDISTp   = 0;
+    int REDIST_TRIES               = 8;
+    int OPT_TRACK_MAX_LOCATION_COUNT = 1;
 };
 
-EvoConfig base_config_with_ops() {
+EvoConfig ops_off_base() { return EvoConfig{}; }
+
+EvoConfig ops_on_base() {
     EvoConfig c;
-    c.popSize     = 50;
-    c.Xp          = 75;
-    c.Mp          = 25;
-    c.turSize     = 2;
-    c.elitesNum   = 1;
-    c.MUT_ID      = MutationOps::SWAP_ID;
-    c.CROSS_ID    = CrossOps::OX_ID;
-    c.REPAIRp     = 70;
-    c.OPTp        = 30;
-    c.OPT_TRACK_MAX_LOCATION_COUNT = 1;
-    c.REDISTp     = 80;
-    c.REDIST_TRIES = 8;
+    c.REPAIRp = 70;
+    c.OPTp    = 30;
+    c.REDISTp = 80;
     return c;
 }
 
-EvoConfig base_config_no_ops() {
-    EvoConfig c = base_config_with_ops();
-    c.REPAIRp  = 0;
-    c.OPTp     = 0;
-    c.REDISTp  = 0;
-    return c;
-}
+// ─── EA factory ──────────────────────────────────────────────────────────────
 
-EvoAlg* make_evo(Problem* problem, const EvoConfig& cfg)
-{
+EvoAlg* make_evo(Problem* problem, const EvoConfig& cfg) {
     EvoAlg* evo = new EvoAlg(problem, cfg.popSize);
     evo->Xp          = cfg.Xp;
     evo->Mp          = cfg.Mp;
@@ -156,157 +71,262 @@ EvoAlg* make_evo(Problem* problem, const EvoConfig& cfg)
     evo->CROSS_ID    = cfg.CROSS_ID;
     evo->REPAIRp     = cfg.REPAIRp;
     evo->OPTp        = cfg.OPTp;
-    evo->OPT_TRACK_MAX_LOCATION_COUNT = cfg.OPT_TRACK_MAX_LOCATION_COUNT;
     evo->REDISTp     = cfg.REDISTp;
-    evo->REDIST_TRIES = cfg.REDIST_TRIES;
+    evo->REDIST_TRIES               = cfg.REDIST_TRIES;
+    evo->OPT_TRACK_MAX_LOCATION_COUNT = cfg.OPT_TRACK_MAX_LOCATION_COUNT;
     return evo;
 }
 
-// Runs N independent trials in parallel, one thread per run.
-// Problem is shared read-only; each thread owns its EvoAlg + Logger.
-// csv files: {out_dir}/{instance}_{tag}_{run}.csv
-double run_config(const string& instance_path, int size, const string& tag,
-                  const EvoConfig& cfg, int n_runs, int budget,
-                  const string& out_dir = "out")
-{
-    Problem* problem = new Problem(instance_path, size);
+// ─── Core run ────────────────────────────────────────────────────────────────
+
+// One trial: logs gen;best;avg;worst, returns final best cost.
+double run_one(Problem* problem, const EvoConfig& cfg,
+               const string& csv_path, int budget) {
+    Logger log(csv_path);
+    EvoAlg* evo = make_evo(problem, cfg);
+    evo->Init(); evo->Eval();
+
+    Solution* b0 = evo->GetBest(); Solution* w0 = evo->GetWorst();
+    log.Log(0, b0->eval, evo->GetAvarage(), w0->eval);
+    delete b0; delete w0;
+
+    int loops = budget / cfg.popSize;
+    for (int i = 1; i <= loops; i++) {
+        evo->Evolve(); evo->Eval();
+        Solution* b = evo->GetBest(); Solution* w = evo->GetWorst();
+        log.Log(i, b->eval, evo->GetAvarage(), w->eval);
+        delete b; delete w;
+    }
+    Solution* fin = evo->GetBest();
+    double cost = fin->eval;
+    delete fin; delete evo;
+    return cost;
+}
+
+// N_RUNS parallel trials on one instance. Returns mean final-best.
+double run_instance(const Instance& inst, const EvoConfig& cfg,
+                    const string& tag, int budget, const string& out_dir) {
+    Problem* problem = new Problem(inst.path, inst.size);
     problem->EARLY_ARRIVAL_PENALTY_MULTIPLAYER = 0;
     problem->LATE_ARRIVAL_PENALTY_MULTIPLAYER  = 0.01;
 
-    // Launch all runs in parallel
-    vector<future<double>> futures;
-    futures.reserve(n_runs);
-    for (int r = 0; r < n_runs; r++) {
-        string csv = out_dir + "/" + problem->NAME + "_" + tag + "_" + to_string(r) + ".csv";
-        futures.push_back(async(launch::async, [&, r, csv]() -> double {
-            EvoAlg* evo = make_evo(problem, cfg);
-            evo->Init(); evo->Eval();
-            double cost = run_experiment(problem, evo, csv, budget);
-            delete evo;
-            return cost;
+    vector<future<double>> futs;
+    for (int r = 0; r < N_RUNS; r++) {
+        string csv = out_dir + "/" + inst.name + "_" + tag + "_" + to_string(r) + ".csv";
+        futs.push_back(async(launch::async, [&, r, csv]() {
+            return run_one(problem, cfg, csv, budget);
         }));
     }
+    double sum = 0;
+    for (auto& f : futs) sum += f.get();
+    delete problem;
+    return sum / N_RUNS;
+}
 
-    double sum = 0.0, best_of_all = -1.0;
-    for (auto& f : futures) {
-        double cost = f.get();
-        sum += cost;
-        if (best_of_all < 0 || cost < best_of_all) best_of_all = cost;
-    }
-    double avg = sum / n_runs;
+// ─── Phase runner ────────────────────────────────────────────────────────────
+
+struct Variant { string tag; EvoConfig cfg; };
+
+struct PhaseResult {
+    string winner_tag;
+    EvoConfig winner_cfg;
+    // per-instance avgs for the winner, indexed by INSTANCES order
+    double inst_avgs[3];
+    double overall_avg;
+};
+
+// Runs all variants on all 3 instances (N_RUNS each → 15 runs per variant).
+// Picks winner by lowest overall avg. Logs to out_dir.
+PhaseResult run_phase(const string& phase_name,
+                      const vector<Variant>& variants,
+                      int budget, const string& out_dir,
+                      ofstream& summary) {
     {
         lock_guard<mutex> lk(cout_mtx);
-        cout << fixed << setprecision(2)
-             << "  " << tag << "  avg=" << avg << "  best=" << best_of_all << endl;
+        cout << "\n--- " << phase_name << " ---" << endl;
+        summary << "\n--- " << phase_name << " ---\n";
     }
-    delete problem;
-    return avg;
+
+    PhaseResult best;
+    best.overall_avg = 1e18;
+
+    for (auto& v : variants) {
+        double inst_avgs[3];
+        double total = 0;
+        for (int i = 0; i < N_INSTANCES; i++) {
+            inst_avgs[i] = run_instance(INSTANCES[i], v.cfg,
+                                        v.tag, budget, out_dir);
+            total += inst_avgs[i];
+        }
+        double overall = total / N_INSTANCES;
+
+        string line = "  " + v.tag
+            + "  c101=" + to_string((int)inst_avgs[0])
+            + "  r101=" + to_string((int)inst_avgs[1])
+            + "  rc101=" + to_string((int)inst_avgs[2])
+            + "  OVERALL=" + to_string((int)overall);
+        if (overall < best.overall_avg) {
+            line += "  <-- best";
+            best.winner_tag = v.tag;
+            best.winner_cfg = v.cfg;
+            for (int i = 0; i < N_INSTANCES; i++) best.inst_avgs[i] = inst_avgs[i];
+            best.overall_avg = overall;
+        }
+        {
+            lock_guard<mutex> lk(cout_mtx);
+            cout << line << endl;
+            summary << line << "\n";
+        }
+    }
+    {
+        lock_guard<mutex> lk(cout_mtx);
+        cout << "  WINNER: " << best.winner_tag
+             << "  (avg=" << fixed << setprecision(1) << best.overall_avg << ")" << endl;
+        summary << "  WINNER: " << best.winner_tag
+                << "  (avg=" << fixed << setprecision(1) << best.overall_avg << ")\n";
+    }
+    return best;
 }
 
-// -------------------------------------------------------
-// Tuning experiment
-// -------------------------------------------------------
-void run_tuning()
-{
-    const int N_RUNS   = 5;
-    const string V     = "out/v2";
-    // tuning budget: 20x previous (200 000 evals, 4 000 gens with pop=50)
-    const int T_BUDGET = 100 * 100 * 20;
+// ─── Tuning pipelines ────────────────────────────────────────────────────────
 
-    struct Instance { string path; int size; string name; };
-    Instance instances[] = {
-        {"./problems/solomon-100/c101.txt",  100, "c101"},
-        {"./problems/solomon-100/r101.txt",  100, "r101"},
-        {"./problems/solomon-100/rc101.txt", 100, "rc101"},
+EvoConfig tune_pipeline(EvoConfig base, bool with_ops,
+                        int budget, const string& out_dir) {
+    string label = with_ops ? "OPS_ON" : "OPS_OFF";
+    string summary_path = out_dir + "/summary_" + label + ".txt";
+    ofstream summary(summary_path);
+    {
+        lock_guard<mutex> lk(cout_mtx);
+        cout << "\n\n========================================" << endl;
+        cout << "  PIPELINE: " << label << endl;
+        cout << "========================================" << endl;
+        summary << "PIPELINE: " << label << "\nBudget per run: " << budget
+                << "  Runs: " << N_RUNS << "x3 instances\n";
+    }
+
+    EvoConfig cfg = base;
+
+    // Phase 1: population size
+    {
+        vector<Variant> vs;
+        for (int pop : {10, 20, 50, 100}) {
+            EvoConfig c = cfg; c.popSize = pop;
+            vs.push_back({"pop" + to_string(pop), c});
+        }
+        cfg = run_phase("Phase 1: popSize", vs, budget, out_dir, summary).winner_cfg;
+    }
+
+    // Phase 2: crossover type
+    {
+        vector<Variant> vs;
+        for (auto [name, id] : vector<pair<string,int>>{{"OX",CrossOps::OX_ID},{"PMX",CrossOps::PMX_ID},{"CX",CrossOps::CX_ID}}) {
+            EvoConfig c = cfg; c.CROSS_ID = id;
+            vs.push_back({"cross_" + name, c});
+        }
+        cfg = run_phase("Phase 2: crossover", vs, budget, out_dir, summary).winner_cfg;
+    }
+
+    // Phase 3: crossover probability Xp
+    {
+        vector<Variant> vs;
+        for (int xp : {50, 75, 90}) {
+            EvoConfig c = cfg; c.Xp = xp;
+            vs.push_back({"xp" + to_string(xp), c});
+        }
+        cfg = run_phase("Phase 3: Xp", vs, budget, out_dir, summary).winner_cfg;
+    }
+
+    // Phase 4: mutation probability Mp
+    {
+        vector<Variant> vs;
+        for (int mp : {10, 25, 40}) {
+            EvoConfig c = cfg; c.Mp = mp;
+            vs.push_back({"mp" + to_string(mp), c});
+        }
+        cfg = run_phase("Phase 4: Mp", vs, budget, out_dir, summary).winner_cfg;
+    }
+
+    // Phase 5: tournament size
+    {
+        vector<Variant> vs;
+        for (int ts : {2, 3, 5}) {
+            EvoConfig c = cfg; c.turSize = ts;
+            vs.push_back({"tur" + to_string(ts), c});
+        }
+        cfg = run_phase("Phase 5: turSize", vs, budget, out_dir, summary).winner_cfg;
+    }
+
+    // Phase 6 (ops_on only): REPAIRp
+    if (with_ops) {
+        vector<Variant> vs;
+        for (int rp : {30, 70, 100}) {
+            EvoConfig c = cfg; c.REPAIRp = rp;
+            vs.push_back({"repair" + to_string(rp), c});
+        }
+        cfg = run_phase("Phase 6: REPAIRp", vs, budget, out_dir, summary).winner_cfg;
+    }
+
+    // Phase 7 (ops_on only): OPTp
+    if (with_ops) {
+        vector<Variant> vs;
+        for (int op : {10, 30, 60}) {
+            EvoConfig c = cfg; c.OPTp = op;
+            vs.push_back({"opt" + to_string(op), c});
+        }
+        cfg = run_phase("Phase 7: OPTp", vs, budget, out_dir, summary).winner_cfg;
+    }
+
+    // Phase 8 (ops_on only): REDISTp
+    if (with_ops) {
+        vector<Variant> vs;
+        for (int rd : {30, 80, 100}) {
+            EvoConfig c = cfg; c.REDISTp = rd;
+            vs.push_back({"redist" + to_string(rd), c});
+        }
+        cfg = run_phase("Phase 8: REDISTp", vs, budget, out_dir, summary).winner_cfg;
+    }
+
+    // Print final best config
+    auto cross_name = [](int id) -> string {
+        if (id == CrossOps::OX_ID)  return "OX";
+        if (id == CrossOps::PMX_ID) return "PMX";
+        return "CX";
     };
-
-    // ----------------------------------------------------------
-    // Phase 1: Operators ON vs OFF (base params)
-    // ----------------------------------------------------------
-    cout << "\n========== Phase 1: Custom Operators ON vs OFF ==========" << endl;
-    for (auto& inst : instances) {
-        cout << "\nInstance: " << inst.name << endl;
-        run_config(inst.path, inst.size, "ops_off", base_config_no_ops(),  N_RUNS, T_BUDGET, V);
-        run_config(inst.path, inst.size, "ops_on",  base_config_with_ops(), N_RUNS, T_BUDGET, V);
+    string final_line =
+        "\nFINAL BEST CONFIG (" + label + "):\n"
+        "  popSize="   + to_string(cfg.popSize)  + "\n"
+        "  CROSS="     + cross_name(cfg.CROSS_ID) + "\n"
+        "  Xp="        + to_string(cfg.Xp)       + "\n"
+        "  Mp="        + to_string(cfg.Mp)        + "\n"
+        "  turSize="   + to_string(cfg.turSize)   + "\n"
+        "  REPAIRp="   + to_string(cfg.REPAIRp)  + "\n"
+        "  OPTp="      + to_string(cfg.OPTp)     + "\n"
+        "  REDISTp="   + to_string(cfg.REDISTp)  + "\n";
+    {
+        lock_guard<mutex> lk(cout_mtx);
+        cout << final_line;
+        summary << final_line;
     }
-
-    // ----------------------------------------------------------
-    // Phase 2: Population size (operators ON)
-    // ----------------------------------------------------------
-    cout << "\n========== Phase 2: Population size (ops ON) ==========" << endl;
-    int pop_values[] = {10, 20, 50, 100};
-    for (auto& inst : instances) {
-        cout << "\nInstance: " << inst.name << endl;
-        for (int pop : pop_values) {
-            EvoConfig cfg = base_config_with_ops();
-            cfg.popSize = pop;
-            run_config(inst.path, inst.size,
-                       "pop" + to_string(pop),
-                       cfg, N_RUNS, T_BUDGET, V);
-        }
-    }
-
-    // ----------------------------------------------------------
-    // Phase 3: Crossover probability Xp (ops ON, best pop)
-    // Use pop=50 as default for this phase (review Phase 2 results to update)
-    // ----------------------------------------------------------
-    cout << "\n========== Phase 3: Crossover probability Xp (ops ON) ==========" << endl;
-    int xp_values[] = {50, 75, 90};
-    for (auto& inst : instances) {
-        cout << "\nInstance: " << inst.name << endl;
-        for (int xp : xp_values) {
-            EvoConfig cfg = base_config_with_ops();
-            cfg.Xp = xp;
-            run_config(inst.path, inst.size,
-                       "xp" + to_string(xp),
-                       cfg, N_RUNS, T_BUDGET, V);
-        }
-    }
-
-    // ----------------------------------------------------------
-    // Phase 4: Mutation probability Mp (ops ON, best pop + Xp)
-    // ----------------------------------------------------------
-    cout << "\n========== Phase 4: Mutation probability Mp (ops ON) ==========" << endl;
-    int mp_values[] = {10, 25, 40};
-    for (auto& inst : instances) {
-        cout << "\nInstance: " << inst.name << endl;
-        for (int mp : mp_values) {
-            EvoConfig cfg = base_config_with_ops();
-            cfg.Mp = mp;
-            run_config(inst.path, inst.size,
-                       "mp" + to_string(mp),
-                       cfg, N_RUNS, T_BUDGET, V);
-        }
-    }
-
-    // ----------------------------------------------------------
-    // Phase 5: Operators ON vs OFF with FULL budget
-    // SIZE*SIZE*200 = 2,000,000 evals — 10x tuning budget
-    // ----------------------------------------------------------
-    cout << "\n========== Phase 5: Final ON vs OFF (full budget) ==========" << endl;
-    const int F_BUDGET = 100 * 100 * 200;
-    for (auto& inst : instances) {
-        cout << "\nInstance: " << inst.name << endl;
-        run_config(inst.path, inst.size, "final_ops_off", base_config_no_ops(),  N_RUNS, F_BUDGET, V);
-        run_config(inst.path, inst.size, "final_ops_on",  base_config_with_ops(), N_RUNS, F_BUDGET, V);
-    }
+    summary.close();
+    return cfg;
 }
 
-// -------------------------------------------------------
-// Main
-// -------------------------------------------------------
+// ─── Main ────────────────────────────────────────────────────────────────────
+
 int main()
 {
-    srand(time(0));
+    const string V = "out/v3";
+    const string V_OFF = V + "/off";
+    const string V_ON  = V + "/on";
+    for (auto& d : {V, V_OFF, V_ON})
+        system(("mkdir -p " + d).c_str());
 
-    // Tiny sanity checks (uncomment to run)
-    // verify_tiny("./problems/tiny/tiny3.txt",         3);
-    // verify_tiny("./problems/tiny/tiny3_shifted.txt", 3);
-    // verify_tiny("./problems/tiny/tiny4.txt",         4);
-    // verify_tiny("./problems/tiny/tiny5_square.txt",  5);
-    // verify_tiny("./problems/tiny/tiny5_tw.txt",      5);
+    // Pipeline A: plain EA — no custom operators
+    EvoConfig best_off = tune_pipeline(ops_off_base(), false, T_BUDGET, V_OFF);
 
-    run_tuning();
+    // Pipeline B: EA + custom operators
+    EvoConfig best_on  = tune_pipeline(ops_on_base(),  true,  T_BUDGET, V_ON);
 
+    cout << "\nAll tuning done. Results saved to " << V << endl;
     return 0;
 }
