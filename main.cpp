@@ -4,6 +4,7 @@
 #include <string>
 #include <cstdlib>
 #include <time.h>
+#include <algorithm>
 #include "CrossOps.h"
 #include "MutationOps.h"
 #include "EvoAlg.h"
@@ -94,7 +95,7 @@ void test_evo(Problem* problem,int debug_interval,bool isInfinite)
         //Logging
         Solution* best = evo->GetBest();
         Solution* worst = evo->GetWorst();
-        int avg = evo->GetAvarage();
+        double avg = evo->GetAvarage();
         /*bestLogger.Log(best);
         worstLogger.Log(worst);
         avgLogger.Log(avg);*/
@@ -154,26 +155,90 @@ void test_sa(Problem* problem)
     cout << "[sa] best solution:";
     sa.bestSolution->print();
 }
+// Returns a copy of the best solution found by trying every permutation.
+// Only practical for tiny instances (up to ~8 customers).
+Solution* brute_force(Problem* problem)
+{
+    int n = problem->SIZE;
+    int* perm = new int[n];
+    for (int i = 0; i < n; i++) perm[i] = i;
+
+    Solution* best = nullptr;
+    do {
+        Solution* s = new Solution(n);
+        for (int i = 0; i < n; i++) s->Genome[i] = perm[i];
+        problem->EstimateSolution(s);
+        if (best == nullptr || s->eval < best->eval) {
+            delete best;
+            best = s;
+        } else {
+            delete s;
+        }
+    } while (next_permutation(perm, perm + n));
+
+    delete[] perm;
+    return best;
+}
+
+void verify_tiny(const string& path, int size)
+{
+    cout << "\n==============================" << endl;
+    cout << "Instance: " << path << endl;
+
+    Problem* problem = new Problem(path, size);
+    problem->EARLY_ARRIVAL_PENALTY_MULTIPLAYER = 0;
+    problem->LATE_ARRIVAL_PENALTY_MULTIPLAYER = 0.01;
+
+    // Brute-force optimal
+    Solution* opt = brute_force(problem);
+    cout << "[brute force] optimal:";
+    opt->print();
+    double optimal_cost = opt->eval;
+    delete opt;
+
+    // EA run
+    test_evo(problem, -1, false);  // -1 = no debug checkpoints
+
+    // Final best from a second run we can inspect
+    int popSize = 33;
+    EvoAlg* evo = new EvoAlg(problem, popSize);
+    int budget = problem->SIZE * problem->SIZE * EVOTest::STANDARD_MULTIPLAYER;
+    evo->Xp = 75; evo->Mp = 25; evo->REPAIRp = 70;
+    evo->OPTp = 30; evo->turSize = 2; evo->REDISTp = 80;
+    evo->REDIST_TRIES = 8; evo->elitesNum = 1;
+    evo->MUT_ID = MutationOps::SWAP_ID;
+    evo->CROSS_ID = CrossOps::OX_ID;
+    evo->Init();
+    evo->Eval();
+    int loops = budget / popSize;
+    for (int i = 0; i < loops; i++) {
+        evo->Evolve();
+        evo->Eval();
+    }
+    Solution* ea_best = evo->GetBest();
+    cout << "[ea]          best found:";
+    ea_best->print();
+
+    double ea_cost = ea_best->eval;
+    if (ea_cost <= optimal_cost + 1e-6)
+        cout << "\n[PASS] EA matched optimal (" << optimal_cost << ")" << endl;
+    else
+        cout << "\n[FAIL] EA got " << ea_cost << ", optimal is " << optimal_cost << endl;
+
+    delete ea_best;
+    delete evo;
+    delete problem;
+}
+
 int main()
 {
     srand(time(0));
 
-    Problem* problem = new Problem("./problems/tiny/tiny3.txt",3);
-    problem->EARLY_ARRIVAL_PENALTY_MULTIPLAYER = 0;
-    problem->LATE_ARRIVAL_PENALTY_MULTIPLAYER = 0.01;
-    Solution* s = new Solution(problem->SIZE);
-    for(int i =0;i<s->size;i++)
-    {
-        s->Genome[i] = i;
-    }
-    cout << "[main] baseline route evaluation" << endl;
-    problem->EstimateSolution(s);
-    s->print();
-    //Solution* opt = MutationOps::OptimalTrack(problem,s);
-    //opt->print();
-
-    //test_sa(problem);
-    test_evo(problem,100,false);
+    verify_tiny("./problems/tiny/tiny3.txt",        3);
+    verify_tiny("./problems/tiny/tiny3_shifted.txt", 3);
+    verify_tiny("./problems/tiny/tiny4.txt",         4);
+    verify_tiny("./problems/tiny/tiny5_square.txt",  5);
+    verify_tiny("./problems/tiny/tiny5_tw.txt",      5);
 
     return 0;
 }
