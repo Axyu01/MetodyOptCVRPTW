@@ -17,5 +17,15 @@ target_include_directories(program
     include/
 )
 
-target_compile_options(program PRIVATE -O3 -march=native -funroll-loops)
+target_compile_options(program PRIVATE
+    -O3 -march=native -funroll-loops
+    -ffast-math
+    -fno-exceptions -fno-rtti
+    -DNDEBUG
+    -Wno-alloc-size-larger-than
+)
 target_link_libraries(program PRIVATE pthread)
+target_link_options(program PRIVATE -Wno-alloc-size-larger-than)
+
+# Link-time optimization (cross-file inlining)
+set_property(TARGET program PROPERTY INTERPROCEDURAL_OPTIMIZATION TRUE)

@@ -407,7 +407,7 @@ Solution *MutationOps::Repair(Problem *problem, Solution *s, bool TRY_BEFORE,
   if (availableRecyclableGenes.size() > 0) {
     if (prunedTracksCount < problem->MAX_VEHICLES) {
       // cout <<endl<<"recycled";
-      Solution *newTrack = new Solution(availableRecyclableGenes.size());
+      Solution *newTrack = new Solution((int)availableRecyclableGenes.size());
       int i = 0;
       for (auto it = availableRecyclableGenes.begin();
            it != availableRecyclableGenes.end(); ++it) {
@@ -418,7 +418,7 @@ Solution *MutationOps::Repair(Problem *problem, Solution *s, bool TRY_BEFORE,
       // cout <<endl<<"copy + recycled";
       Solution *lastSolution = prunedTracks[prunedTracksCount - 1];
       Solution *newTrack =
-          new Solution(availableRecyclableGenes.size() + lastSolution->size);
+          new Solution((int)availableRecyclableGenes.size() + lastSolution->size);
       int i = 0;
       while (i < lastSolution->size) {
         newTrack->Genome[i] = lastSolution->Genome[i];
