@@ -79,7 +79,7 @@ double Problem::EstimateSolution(Solution *s) {
 }
 void Problem::Load(string path, int problemSize) {
   SIZE = problemSize;
-  cout << "[load] instance: " << path << endl;
+  // cout << "[load] instance: " << path << endl;
   ifstream file(path);
 
   string line;

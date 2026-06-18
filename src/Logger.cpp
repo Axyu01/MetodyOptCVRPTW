@@ -7,8 +7,6 @@ Logger::Logger(string file_name) {
   _file.open(file_name, ios::out | ios::trunc);
   if (!_file.is_open())
     cout << "[logger] cannot open file: " << file_name << '\n';
-  else
-    cout << "[logger] opened: " << file_name << '\n';
 }
 
 Logger::~Logger() { _file.close(); }

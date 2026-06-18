@@ -4,6 +4,9 @@
 #include <ctime>
 #include <algorithm>
 #include <iomanip>
+#include <future>
+#include <vector>
+#include <mutex>
 #include "Problem.h"
 #include "GreadySolver.h"
 #include "CrossOps.h"
@@ -13,6 +16,8 @@
 #include "SAAlg.h"
 #include "EVOTest.h"
 using namespace std;
+
+static mutex cout_mtx;
 
 // -------------------------------------------------------
 // Brute-force (tiny instances only, up to ~8 customers)
@@ -157,30 +162,43 @@ EvoAlg* make_evo(Problem* problem, const EvoConfig& cfg)
     return evo;
 }
 
-// Runs N independent trials for a config on one instance.
-// csv files: out/{instance}_{tag}_{run}.csv
-// Returns average final best cost.
+// Runs N independent trials in parallel, one thread per run.
+// Problem is shared read-only; each thread owns its EvoAlg + Logger.
+// csv files: {out_dir}/{instance}_{tag}_{run}.csv
 double run_config(const string& instance_path, int size, const string& tag,
-                  const EvoConfig& cfg, int n_runs, int budget)
+                  const EvoConfig& cfg, int n_runs, int budget,
+                  const string& out_dir = "out")
 {
     Problem* problem = new Problem(instance_path, size);
     problem->EARLY_ARRIVAL_PENALTY_MULTIPLAYER = 0;
     problem->LATE_ARRIVAL_PENALTY_MULTIPLAYER  = 0.01;
 
-    double sum = 0.0;
-    double best_of_all = -1.0;
+    // Launch all runs in parallel
+    vector<future<double>> futures;
+    futures.reserve(n_runs);
     for (int r = 0; r < n_runs; r++) {
-        EvoAlg* evo = make_evo(problem, cfg);
-        evo->Init(); evo->Eval();
-        string csv = "out/" + problem->NAME + "_" + tag + "_" + to_string(r) + ".csv";
-        double cost = run_experiment(problem, evo, csv, budget);
+        string csv = out_dir + "/" + problem->NAME + "_" + tag + "_" + to_string(r) + ".csv";
+        futures.push_back(async(launch::async, [&, r, csv]() -> double {
+            EvoAlg* evo = make_evo(problem, cfg);
+            evo->Init(); evo->Eval();
+            double cost = run_experiment(problem, evo, csv, budget);
+            delete evo;
+            return cost;
+        }));
+    }
+
+    double sum = 0.0, best_of_all = -1.0;
+    for (auto& f : futures) {
+        double cost = f.get();
         sum += cost;
         if (best_of_all < 0 || cost < best_of_all) best_of_all = cost;
-        delete evo;
     }
     double avg = sum / n_runs;
-    cout << fixed << setprecision(2)
-         << "  " << tag << "  avg=" << avg << "  best=" << best_of_all << endl;
+    {
+        lock_guard<mutex> lk(cout_mtx);
+        cout << fixed << setprecision(2)
+             << "  " << tag << "  avg=" << avg << "  best=" << best_of_all << endl;
+    }
     delete problem;
     return avg;
 }
@@ -190,9 +208,10 @@ double run_config(const string& instance_path, int size, const string& tag,
 // -------------------------------------------------------
 void run_tuning()
 {
-    const int N_RUNS  = 5;
-    // tuning budget: SIZE*SIZE = 10000 evals (fast enough to iterate over many configs)
-    const int T_BUDGET = 100 * 100;
+    const int N_RUNS   = 5;
+    const string V     = "out/v2";
+    // tuning budget: 20x previous (200 000 evals, 4 000 gens with pop=50)
+    const int T_BUDGET = 100 * 100 * 20;
 
     struct Instance { string path; int size; string name; };
     Instance instances[] = {
@@ -207,8 +226,8 @@ void run_tuning()
     cout << "\n========== Phase 1: Custom Operators ON vs OFF ==========" << endl;
     for (auto& inst : instances) {
         cout << "\nInstance: " << inst.name << endl;
-        run_config(inst.path, inst.size, "ops_off", base_config_no_ops(),  N_RUNS, T_BUDGET);
-        run_config(inst.path, inst.size, "ops_on",  base_config_with_ops(), N_RUNS, T_BUDGET);
+        run_config(inst.path, inst.size, "ops_off", base_config_no_ops(),  N_RUNS, T_BUDGET, V);
+        run_config(inst.path, inst.size, "ops_on",  base_config_with_ops(), N_RUNS, T_BUDGET, V);
     }
 
     // ----------------------------------------------------------
@@ -223,7 +242,7 @@ void run_tuning()
             cfg.popSize = pop;
             run_config(inst.path, inst.size,
                        "pop" + to_string(pop),
-                       cfg, N_RUNS, T_BUDGET);
+                       cfg, N_RUNS, T_BUDGET, V);
         }
     }
 
@@ -240,7 +259,7 @@ void run_tuning()
             cfg.Xp = xp;
             run_config(inst.path, inst.size,
                        "xp" + to_string(xp),
-                       cfg, N_RUNS, T_BUDGET);
+                       cfg, N_RUNS, T_BUDGET, V);
         }
     }
 
@@ -256,20 +275,20 @@ void run_tuning()
             cfg.Mp = mp;
             run_config(inst.path, inst.size,
                        "mp" + to_string(mp),
-                       cfg, N_RUNS, T_BUDGET);
+                       cfg, N_RUNS, T_BUDGET, V);
         }
     }
 
     // ----------------------------------------------------------
-    // Phase 5: Operators ON vs OFF with FULL budget (best params)
-    // Use 20x tuning budget: SIZE*SIZE*20 = 200,000 evals
+    // Phase 5: Operators ON vs OFF with FULL budget
+    // SIZE*SIZE*200 = 2,000,000 evals — 10x tuning budget
     // ----------------------------------------------------------
     cout << "\n========== Phase 5: Final ON vs OFF (full budget) ==========" << endl;
-    const int F_BUDGET = 100 * 100 * 20;
+    const int F_BUDGET = 100 * 100 * 200;
     for (auto& inst : instances) {
         cout << "\nInstance: " << inst.name << endl;
-        run_config(inst.path, inst.size, "final_ops_off", base_config_no_ops(),  N_RUNS, F_BUDGET);
-        run_config(inst.path, inst.size, "final_ops_on",  base_config_with_ops(), N_RUNS, F_BUDGET);
+        run_config(inst.path, inst.size, "final_ops_off", base_config_no_ops(),  N_RUNS, F_BUDGET, V);
+        run_config(inst.path, inst.size, "final_ops_on",  base_config_with_ops(), N_RUNS, F_BUDGET, V);
     }
 }
 

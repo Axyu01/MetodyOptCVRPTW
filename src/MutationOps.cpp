@@ -1,3 +1,4 @@
+#include "rng.h"
 #include "MutationOps.h"
 #include <cstdio>
 #include <cstdlib>
@@ -20,8 +21,8 @@ Solution *MutationOps::Swap(Solution *s, int numOfSwaps) {
     int g2 = -1;
 
     while (g1 == g2) {
-      g1 = rand() % size;
-      g2 = rand() % size;
+      g1 = trand() % size;
+      g2 = trand() % size;
     }
 
     int temp = s_out->Genome[g1];
@@ -38,8 +39,8 @@ Solution *MutationOps::Inverse(Solution *s) {
   int g2 = -1;
 
   while (g1 == g2) {
-    g1 = rand() % size;
-    g2 = rand() % size;
+    g1 = trand() % size;
+    g2 = trand() % size;
   }
 
   if (g1 > g2) // swap
@@ -606,12 +607,12 @@ Solution *MutationOps::RedistributeLocations(Problem *problem, Solution *s,
     return new Solution(s);
   }
   for (int i = 0; i < tries; i++) {
-    int donor = rand() % tracksCount;
+    int donor = trand() % tracksCount;
     if (tracks[donor]->size <= 1)
       continue;
-    int pacient = rand() % tracksCount;
+    int pacient = trand() % tracksCount;
     while (donor == pacient) {
-      pacient = rand() % tracksCount;
+      pacient = trand() % tracksCount;
     }
 
     if (tracks[donor]->size < tracks[pacient]->size) {
@@ -619,9 +620,9 @@ Solution *MutationOps::RedistributeLocations(Problem *problem, Solution *s,
       donor = pacient;
       pacient = temp;
     }
-    int geneRemovePos = rand() % tracks[donor]->size;
+    int geneRemovePos = trand() % tracks[donor]->size;
     int geneVal = tracks[donor]->Genome[geneRemovePos];
-    int geneInsertPos = rand() % (tracks[pacient]->size + 1);
+    int geneInsertPos = trand() % (tracks[pacient]->size + 1);
     tracks[donor]->Remove(geneRemovePos);
     tracks[pacient]->Insert(geneVal, geneInsertPos);
   }

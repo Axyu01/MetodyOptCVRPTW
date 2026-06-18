@@ -1,3 +1,4 @@
+#include "rng.h"
 #include "CrossOps.h"
 #include "iostream"
 using namespace std;
@@ -15,8 +16,8 @@ Solution *CrossOps::OX(Solution *s1, Solution *s2, int size) {
     used[i] = false;
     newSolution->Genome[i] = -1;
   }
-  int start = rand() % size;
-  int end = rand() % size;
+  int start = trand() % size;
+  int end = trand() % size;
 
   if (start > end) // swap if needed
   {
@@ -45,7 +46,7 @@ Solution *CrossOps::CX(Solution *s1, Solution *s2, int size) {
   for (int i = 0; i < size; i++) {
     newSolution->Genome[i] = -1;
   }
-  int startG = rand() % size;
+  int startG = trand() % size;
   // cout << "\n" << startG <<"\n";
   int startVal = s1->Genome[startG];
 
@@ -77,8 +78,8 @@ Solution *CrossOps::PMX(Solution *s1, Solution *s2, int size) {
     used[i] = false;
     newSolution->Genome[i] = -1;
   }
-  int start = rand() % size;
-  int end = rand() % size;
+  int start = trand() % size;
+  int end = trand() % size;
 
   if (start > end) // swap if needed
   {

@@ -16,3 +16,6 @@ target_include_directories(program
   PRIVATE
     include/
 )
+
+target_compile_options(program PRIVATE -O3 -march=native -funroll-loops)
+target_link_libraries(program PRIVATE pthread)

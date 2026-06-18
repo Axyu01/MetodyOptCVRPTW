@@ -1,3 +1,4 @@
+#include "rng.h"
 #include "EvoAlg.h"
 #include "CrossOps.h"
 #include "MutationOps.h"
@@ -26,10 +27,10 @@ void EvoAlg::Eval() {
 }
 Solution *EvoAlg::Select() {
   // cout<<"\n tursize"<<turSize;
-  // return population[rand()%popSize];
+  // return population[trand()%popSize];
   Solution *contestants[turSize];
   for (int s = 0; s < turSize; s++) {
-    contestants[s] = population[rand() % popSize];
+    contestants[s] = population[trand() % popSize];
   }
   Solution *bestSolution = contestants[0];
   for (int s = 1; s < turSize; s++) {
@@ -54,7 +55,7 @@ Solution *EvoAlg::Mutate(Solution *s) {
     mutatedSolution = MutationOps::Inverse(s);
   else
     mutatedSolution = MutationOps::Swap(s, s->size * Xp / MAX_PROB);
-  if (rand() % MAX_PROB < REDISTp) {
+  if (trand() % MAX_PROB < REDISTp) {
     Solution *redistributedSolution = MutationOps::RedistributeLocations(
         problem, mutatedSolution, REDIST_TRIES);
     if (mutatedSolution != s)
@@ -62,7 +63,7 @@ Solution *EvoAlg::Mutate(Solution *s) {
     mutatedSolution = redistributedSolution;
   }
   // return mutatedSolution;
-  if (rand() % MAX_PROB < REPAIRp) {
+  if (trand() % MAX_PROB < REPAIRp) {
     Solution *repairedSolution = MutationOps::Repair(
         problem, mutatedSolution, REPAIR_TRY_BEFORE, REPAIR_TRY_AFTER,
         REPAIR_USE_DAMAND, OPT_TRACK_MAX_LOCATION_COUNT);
@@ -70,7 +71,7 @@ Solution *EvoAlg::Mutate(Solution *s) {
       delete mutatedSolution;
     mutatedSolution = repairedSolution;
   }
-  if (rand() % MAX_PROB < OPTp) {
+  if (trand() % MAX_PROB < OPTp) {
     Solution *optimizedSolution = MutationOps::OptimizeTracks(
         problem, mutatedSolution, OPT_TRACK_MAX_LOCATION_COUNT);
     if (mutatedSolution != s)
@@ -131,13 +132,13 @@ void EvoAlg::Evolve() {
     Solution *P2 = Select();
 
     Solution *O1 = nullptr;
-    if (rand() % MAX_PROB < Xp) {
+    if (trand() % MAX_PROB < Xp) {
       O1 = Cross(P1, P2);
     } else {
       O1 = new Solution(P1);
     }
 
-    if (rand() % MAX_PROB < Mp) {
+    if (trand() % MAX_PROB < Mp) {
       Solution *temp = O1;
       O1 = Mutate(O1);
       delete temp;

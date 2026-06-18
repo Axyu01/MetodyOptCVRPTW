@@ -1,3 +1,4 @@
+#include "rng.h"
 #include "Solution.h"
 #include <cstdio>
 #include <cstdlib>
@@ -26,7 +27,7 @@ Solution::Solution(int size) {
 
     int rand_g = -1;
     while (rand_g == -1) {
-      int rand_num = rand() % size;
+      int rand_num = trand() % size;
       if (Genome[rand_num] == -1) {
         rand_g = rand_num;
       }

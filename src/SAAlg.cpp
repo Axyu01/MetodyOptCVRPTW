@@ -1,3 +1,4 @@
+#include "rng.h"
 #include "SAAlg.h"
 #include "MutationOps.h"
 #include <cmath>
@@ -49,7 +50,7 @@ bool SAAlg::Iterate() {
         (int)(MAX_PROB * (1 / (1 + std::exp((neighboorSolution->eval -
                                              currentSolution->eval) /
                                             currentTemp))));
-    if (acceptance_probability > rand() % MAX_PROB) {
+    if (acceptance_probability > trand() % MAX_PROB) {
       delete currentSolution;
       currentSolution = neighboorSolution;
     }
