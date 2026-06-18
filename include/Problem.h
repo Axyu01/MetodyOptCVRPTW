@@ -9,7 +9,7 @@ public:
   float EARLY_ARRIVAL_PENALTY_MULTIPLAYER = 0;
   Problem(std::string, int problemSize);
   virtual ~Problem();
-  int EstimateSolution(Solution *s);
+  double EstimateSolution(Solution *s);
   int EstimateSolution(Solution *s, int **&CMXJTable, int jobLimit);
   void EstimateSolution(Solution *s, int **&CMJTable, int xj, int m);
   int CAPACITY;

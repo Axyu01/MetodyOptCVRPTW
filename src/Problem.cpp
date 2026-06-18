@@ -17,7 +17,7 @@ Problem::~Problem() {
   delete[] COORD_Y;
   delete[] Demand;
 }
-int Problem::EstimateSolution(Solution *s) {
+double Problem::EstimateSolution(Solution *s) {
   double estimation = 0;
   double penalty = 0;
   int load = 0;

@@ -36,7 +36,7 @@ public:
   void Evolve();
   Solution *GetBest();
   Solution *GetWorst();
-  int GetAvarage();
+  double GetAvarage();
 
 protected:
   Solution *Select();

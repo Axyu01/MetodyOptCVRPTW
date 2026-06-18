@@ -98,8 +98,8 @@ Solution *EvoAlg::GetWorst() {
   }
   return new Solution(worstSolution);
 }
-int EvoAlg::GetAvarage() {
-  long long int sum = 0;
+double EvoAlg::GetAvarage() {
+  double sum = 0;
   for (int s = 0; s < popSize; s++) {
     sum += population[s]->eval;
   }
