@@ -153,9 +153,14 @@ PhaseResult run_phase(const string& phase_name,
     for (auto& v : variants) {
         double inst_avgs[3];
         double total = 0;
+        // Run all 3 instances concurrently (3x5 = 15 threads on a 16-core machine)
+        future<double> inst_futs[N_INSTANCES];
+        for (int i = 0; i < N_INSTANCES; i++)
+            inst_futs[i] = async(launch::async, [&, i]() {
+                return run_instance(INSTANCES[i], v.cfg, v.tag, budget, out_dir);
+            });
         for (int i = 0; i < N_INSTANCES; i++) {
-            inst_avgs[i] = run_instance(INSTANCES[i], v.cfg,
-                                        v.tag, budget, out_dir);
+            inst_avgs[i] = inst_futs[i].get();
             total += inst_avgs[i];
         }
         double overall = total / N_INSTANCES;
