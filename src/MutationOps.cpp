@@ -167,7 +167,9 @@ Solution *MutationOps::OptimizeTracks(Problem *problem, Solution *s,
 
   Solution *sOptimized = ReconstructSolutionFromTracks(problem, tracks);
 
+#ifdef DEBUG
   DEBUG_CheckSolution(problem, sOptimized, s, tracks);
+#endif
 
   // Memory management
   for (int i = 0; i < problem->MAX_VEHICLES; i++) {
@@ -185,28 +187,32 @@ Solution *MutationOps::GreadyTrack(Problem *problem, Solution *s) {
     takenLocation[i] = false;
 
   Solution *best = new Solution(0);
+  Solution *sLocal = new Solution(s->size); // reused buffer, avoids k² allocations
   for (int i = 0; i < s->size; i++) {
-    Solution *curr_best = nullptr;
+    // Copy the current best prefix into sLocal once per position
+    sLocal->size = i + 1;
+    for (int k = 0; k < i; k++)
+      sLocal->Genome[k] = best->Genome[k];
+
+    double curr_best_eval = 1e18;
     int curr_best_index = -1;
     for (int j = 0; j < s->size; j++) {
       if (takenLocation[j])
         continue;
-      Solution *sLocal = new Solution(best, i + 1);
       sLocal->Genome[i] = s->Genome[j];
       problem->EstimateSolution(sLocal);
-      if (curr_best == nullptr || curr_best->eval > sLocal->eval) {
-        if (curr_best != nullptr)
-          delete curr_best;
-        curr_best = sLocal;
+      if (sLocal->eval < curr_best_eval) {
+        curr_best_eval  = sLocal->eval;
         curr_best_index = j;
-      } else {
-        delete sLocal;
       }
     }
     delete best;
-    best = curr_best;
+    best = new Solution(sLocal, i + 1);
+    best->Genome[i] = s->Genome[curr_best_index];
+    best->eval = curr_best_eval;
     takenLocation[curr_best_index] = true;
   }
+  delete sLocal;
   return best;
 }
 Solution *MutationOps::OptimalTrack(Problem *problem, Solution *s) {
@@ -459,12 +465,11 @@ Solution *MutationOps::Repair(Problem *problem, Solution *s, bool TRY_BEFORE,
 
   Solution *sRepaired = ReconstructSolutionFromTracks(problem, prunedTracks);
   problem->EstimateSolution(sRepaired);
-  // sRepaired->print();
-  problem->EstimateSolution(s);
-  // s->print();
   // cout <<endl<<"POST REPAIR";
 
+#ifdef DEBUG
   DEBUG_CheckSolution(problem, sRepaired, s, tracks);
+#endif
   // cout <<endl<<"MEMORY MANAGMENT";
   // Memory management
   for (int i = 0; i < prunedTracksCount; i++) {

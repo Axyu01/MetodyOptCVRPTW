@@ -21,7 +21,7 @@ static mutex cout_mtx;
 // ─── Constants ───────────────────────────────────────────────────────────────
 
 const int    N_RUNS   = 5;
-const int    T_BUDGET = 200'000;   // evals per run during tuning
+const int    T_BUDGET = 300'000;   // evals per run during tuning
 
 struct Instance { string path; int size; string name; };
 const Instance INSTANCES[] = {
@@ -321,11 +321,11 @@ int main()
     for (auto& d : {V, V_OFF, V_ON})
         system(("mkdir -p " + d).c_str());
 
-    // Pipeline A: plain EA — no custom operators
-    EvoConfig best_off = tune_pipeline(ops_off_base(), false, T_BUDGET, V_OFF);
-
-    // Pipeline B: EA + custom operators
+    // Pipeline A: EA + custom operators (first so results come in quickly)
     EvoConfig best_on  = tune_pipeline(ops_on_base(),  true,  T_BUDGET, V_ON);
+
+    // Pipeline B: plain EA — no custom operators
+    EvoConfig best_off = tune_pipeline(ops_off_base(), false, T_BUDGET, V_OFF);
 
     cout << "\nAll tuning done. Results saved to " << V << endl;
     return 0;
