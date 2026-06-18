@@ -6,9 +6,7 @@
 using namespace std;
 Problem::Problem(string path, int problemSize) { Load(path, problemSize); }
 Problem::~Problem() {
-  for (int l = 0; l < SIZE + 1; l++) {
-    delete[] DistanceMatrix[l];
-  }
+  delete[] DistanceMatrix[0]; // frees the contiguous storage block
   delete[] DistanceMatrix;
   delete[] ReadyTime;
   delete[] DueDate;
@@ -50,7 +48,7 @@ double Problem::EstimateSolution(Solution *s) {
 
     double dist = DistanceMatrix[previousNode][currentNode];
     estimation += dist;
-    time += DistanceMatrix[previousNode][currentNode];
+    time += dist;
     // cout <<"Going from: "<< previousNode <<" to: "<<currentNode<<endl;
 
     // check for time window
@@ -139,13 +137,16 @@ void Problem::Load(string path, int problemSize) {
     }
   }
 
-  // calculate distance matrix
-  DistanceMatrix = new double *[problemSize + 1];
-  for (int l1 = 0; l1 < problemSize + 1; l1++) {
-    DistanceMatrix[l1] = new double[problemSize + 1];
-    for (int l2 = 0; l2 < problemSize + 1; l2++) {
-      DistanceMatrix[l1][l2] = sqrt(pow((COORD_X[l1] - COORD_X[l2]), 2) +
-                                    pow((COORD_Y[l1] - COORD_Y[l2]), 2));
+  // calculate distance matrix - one contiguous block for cache locality
+  int N = problemSize + 1;
+  double *dm_storage = new double[N * N];
+  DistanceMatrix = new double *[N];
+  for (int l1 = 0; l1 < N; l1++) {
+    DistanceMatrix[l1] = dm_storage + l1 * N;
+    for (int l2 = 0; l2 < N; l2++) {
+      double dx = COORD_X[l1] - COORD_X[l2];
+      double dy = COORD_Y[l1] - COORD_Y[l2];
+      DistanceMatrix[l1][l2] = sqrt(dx * dx + dy * dy);
     }
   }
   file.close();

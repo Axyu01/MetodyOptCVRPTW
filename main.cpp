@@ -324,7 +324,7 @@ int main()
     // Pipeline A: EA + custom operators (first so results come in quickly)
     EvoConfig best_on  = tune_pipeline(ops_on_base(),  true,  T_BUDGET, V_ON);
 
-    // Pipeline B: plain EA — no custom operators
+    // Pipeline B: plain EA - no custom operators
     EvoConfig best_off = tune_pipeline(ops_off_base(), false, T_BUDGET, V_OFF);
 
     cout << "\nAll tuning done. Results saved to " << V << endl;

@@ -1,7 +1,7 @@
 #pragma once
 #include <random>
 
-// Thread-local Mersenne Twister — drop-in replacement for rand().
+// Thread-local Mersenne Twister - drop-in replacement for rand().
 // Each thread gets an independently seeded RNG, making parallel runs safe.
 
 inline thread_local std::mt19937 _tl_rng{std::random_device{}()};
