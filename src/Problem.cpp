@@ -55,11 +55,10 @@ int Problem::EstimateSolution(Solution *s) {
 
     // check for time window
     if (time < ReadyTime[currentNode]) {
+      double wait = ReadyTime[currentNode] - time;
+      estimation += wait * EARLY_ARRIVAL_PENALTY_MULTIPLAYER;
+      penalty += wait * EARLY_ARRIVAL_PENALTY_MULTIPLAYER;
       time = ReadyTime[currentNode];
-      estimation +=
-          (time - ReadyTime[currentNode]) * EARLY_ARRIVAL_PENALTY_MULTIPLAYER;
-      penalty +=
-          (time - ReadyTime[currentNode]) * EARLY_ARRIVAL_PENALTY_MULTIPLAYER;
     }
     if (time > DueDate[currentNode]) // and add penalty
     {

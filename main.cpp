@@ -55,7 +55,7 @@ void test_evo(Problem* problem,int debug_interval,bool isInfinite)
     evo->OPTp = OPTp;
     evo->turSize = turSize;
     evo->REDISTp = REDISTp;
-    evo->REDIST_TRIES;
+    evo->REDIST_TRIES = REDIST_TRIES;
     evo->elitesNum = elitesNum;
     evo->MUT_ID = MUT_ID;
     evo->CROSS_ID = CROSS_ID;

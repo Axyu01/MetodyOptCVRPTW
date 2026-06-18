@@ -31,7 +31,7 @@ Solution *MutationOps::Swap(Solution *s, int numOfSwaps) {
 
   return s_out;
 }
-Solution *MutationOps::Swap(Solution *s) { Swap(s, 1); }
+Solution *MutationOps::Swap(Solution *s) { return Swap(s, 1); }
 Solution *MutationOps::Inverse(Solution *s) {
   int size = s->size;
   int g1 = -1;
@@ -130,9 +130,6 @@ Solution *MutationOps::ReconstructSolutionFromTracks(Problem *problem,
     track_start += tracks[i]->size + 1;
   }
   // Fill rest with zero's
-  int dummy;
-  if (track_start == sOptimized->Genome[track_start - 1])
-//    cin >> dummy;
   for (int i = track_start; i < sOptimized->size; i++) {
     sOptimized->Genome[i] = i;
   }
@@ -344,8 +341,8 @@ Solution *MutationOps::Repair(Problem *problem, Solution *s, bool TRY_BEFORE,
           break;
         tryAfter = false;
       } else if (isGeneRecyclable[i][repairedG] >= 0) {
-        continue;
         prunedIterator++;
+        continue;
       }
       // cout << " IS FAULTY";
 
@@ -413,7 +410,8 @@ Solution *MutationOps::Repair(Problem *problem, Solution *s, bool TRY_BEFORE,
           new Solution(availableRecyclableGenes.size() + lastSolution->size);
       int i = 0;
       while (i < lastSolution->size) {
-        newTrack->Genome[i++] = lastSolution->Genome[i];
+        newTrack->Genome[i] = lastSolution->Genome[i];
+        i++;
       }
       for (auto it = availableRecyclableGenes.begin();
            it != availableRecyclableGenes.end(); ++it) {
@@ -546,7 +544,7 @@ double *MutationOps::FindRecyclableGenes(Problem *problem, Solution *s) {
     isGeneRecyclable[i] = time; // This means the gene is NOT suited to be
                                 // recycled + gives info about departure time
 
-    if (isGeneRecyclable[i - 1] <
+    if (i > 0 && isGeneRecyclable[i - 1] <
         0) // If previous gene is recyclable update info of recyclable chain
     {
       int recyclableTown = i - 1;

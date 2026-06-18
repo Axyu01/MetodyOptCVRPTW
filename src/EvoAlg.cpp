@@ -62,16 +62,14 @@ Solution *EvoAlg::Mutate(Solution *s) {
     mutatedSolution = redistributedSolution;
   }
   // return mutatedSolution;
-  // if (rand() % MAX_PROB < REPAIRp) {
-  //   // cout <<endl<< "Repair";
-  //   Solution *repairedSolution = MutationOps::Repair(
-  //       problem, mutatedSolution, REPAIR_TRY_BEFORE, REPAIR_TRY_AFTER,
-  //       REPAIR_USE_DAMAND, OPT_TRACK_MAX_LOCATION_COUNT);
-  //   // cout << endl<< "RepairEnd";
-  //   if (mutatedSolution != s)
-  //     delete mutatedSolution;
-  //   mutatedSolution = repairedSolution;
-  // }
+  if (rand() % MAX_PROB < REPAIRp) {
+    Solution *repairedSolution = MutationOps::Repair(
+        problem, mutatedSolution, REPAIR_TRY_BEFORE, REPAIR_TRY_AFTER,
+        REPAIR_USE_DAMAND, OPT_TRACK_MAX_LOCATION_COUNT);
+    if (mutatedSolution != s)
+      delete mutatedSolution;
+    mutatedSolution = repairedSolution;
+  }
   if (rand() % MAX_PROB < OPTp) {
     Solution *optimizedSolution = MutationOps::OptimizeTracks(
         problem, mutatedSolution, OPT_TRACK_MAX_LOCATION_COUNT);
