@@ -103,9 +103,13 @@ Solution **MutationOps::FindTracks(Problem *problem, Solution *s) {
   }
   if (detectedSymbols > 0) {
     Solution *temp = tracks[track_id];
-    tracks[track_id] = new Solution(tracks[track_id],
-                                    tracks[track_id]->size - detectedSymbols);
-    track_id++;
+    int finalSize = temp->size - detectedSymbols;
+    if (finalSize > 0) {
+      tracks[track_id] = new Solution(temp, finalSize);
+      track_id++;
+    } else {
+      tracks[track_id] = nullptr; // last segment was all return symbols, skip it
+    }
     delete temp;
   }
   return tracks;
@@ -214,7 +218,7 @@ Solution *MutationOps::OptimalTrack(Problem *problem, Solution *s) {
   Solution *best =
       OptimalTrack(problem, zeroSolution, possibleLocations, lSize);
   delete zeroSolution;
-  delete possibleLocations;
+  delete[] possibleLocations;
   return best;
 }
 Solution *MutationOps::OptimalTrack(Problem *problem, Solution *s,
@@ -495,7 +499,7 @@ double *MutationOps::FindRecyclableGenes(Problem *problem, Solution *s) {
   double estimation = 0;
   int load = 0;
   double time = 0;
-  int currentNode;
+  int currentNode = 0;
   int previousNode = 0;
 
   for (int i = 0; i < s->size; i++) {

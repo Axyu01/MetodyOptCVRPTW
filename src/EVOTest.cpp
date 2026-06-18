@@ -31,7 +31,7 @@ void EVOTest::UniversalTest(Problem *problem, EvoAlg *evo,
   // Entry Logging
   Solution *best = evo->GetBest();
   Solution *worst = evo->GetWorst();
-  int avg = evo->GetAvarage();
+  double avg = evo->GetAvarage();
   bestLogger.Log(best);
   worstLogger.Log(worst);
   avgLogger.Log(avg);
@@ -50,7 +50,7 @@ void EVOTest::UniversalTest(Problem *problem, EvoAlg *evo,
     // Logging
     Solution *best = evo->GetBest();
     Solution *worst = evo->GetWorst();
-    int avg = evo->GetAvarage();
+    double avg = evo->GetAvarage();
     bestLogger.Log(best);
     worstLogger.Log(worst);
     avgLogger.Log(avg);

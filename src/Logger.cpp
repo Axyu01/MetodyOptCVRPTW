@@ -19,4 +19,4 @@ void Logger::Log(Solution *s) {
   }
   _file << "\n";
 }
-void Logger::Log(int value) { _file << value << ";\n"; }
+void Logger::Log(double value) { _file << value << ";\n"; }

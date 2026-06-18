@@ -11,7 +11,7 @@ public:
   Logger(string file_name);
   virtual ~Logger();
   void Log(Solution *s);
-  void Log(int value);
+  void Log(double value);
 
 protected:
   fstream _file;

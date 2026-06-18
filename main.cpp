@@ -230,15 +230,66 @@ void verify_tiny(const string& path, int size)
     delete problem;
 }
 
+EvoAlg* make_evo(Problem* problem, int popSize)
+{
+    EvoAlg* evo = new EvoAlg(problem, popSize);
+    evo->Xp      = 75;
+    evo->Mp      = 25;
+    evo->REPAIRp = 70;
+    evo->OPTp    = 30;
+    evo->REDISTp = 80;
+    evo->REDIST_TRIES = 8;
+    evo->turSize  = 2;
+    evo->elitesNum = 1;
+    evo->MUT_ID   = MutationOps::SWAP_ID;
+    evo->CROSS_ID = CrossOps::OX_ID;
+    return evo;
+}
+
+void test_solomon(const string& path, int size, double bks, int loops = 500)
+{
+    cout << "\n==============================" << endl;
+    Problem* problem = new Problem(path, size);
+    problem->EARLY_ARRIVAL_PENALTY_MULTIPLAYER = 0;
+    problem->LATE_ARRIVAL_PENALTY_MULTIPLAYER  = 0.01;
+
+    EvoAlg* evo = make_evo(problem, 50);
+    evo->Init();
+    evo->Eval();
+
+    for (int i = 0; i < loops; i++) {
+        evo->Evolve();
+        evo->Eval();
+    }
+
+    Solution* best = evo->GetBest();
+    double gap = 100.0 * (best->eval - bks) / bks;
+    cout << "Instance: " << problem->NAME
+         << "  loops: " << loops
+         << "  best: " << best->eval
+         << "  BKS: " << bks
+         << "  gap: " << gap << "%" << endl;
+    delete best;
+    delete evo;
+    delete problem;
+}
+
 int main()
 {
     srand(time(0));
 
-    verify_tiny("./problems/tiny/tiny3.txt",        3);
+    // Tiny benchmark sanity check
+    verify_tiny("./problems/tiny/tiny3.txt",         3);
     verify_tiny("./problems/tiny/tiny3_shifted.txt", 3);
     verify_tiny("./problems/tiny/tiny4.txt",         4);
     verify_tiny("./problems/tiny/tiny5_square.txt",  5);
     verify_tiny("./problems/tiny/tiny5_tw.txt",      5);
+
+    // Solomon 100-customer benchmarks
+    // BKS values from the standard Solomon benchmark tables
+    test_solomon("./problems/solomon-100/c101.txt",  100, 827.3);
+    test_solomon("./problems/solomon-100/r101.txt",  100, 1650.8);
+    test_solomon("./problems/solomon-100/rc101.txt", 100, 1696.94);
 
     return 0;
 }
