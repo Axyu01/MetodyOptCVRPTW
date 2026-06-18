@@ -12,6 +12,7 @@ public:
   virtual ~Logger();
   void Log(Solution *s);
   void Log(double value);
+  void Log(int gen, double best, double avg, double worst);
 
 protected:
   fstream _file;

@@ -20,3 +20,6 @@ void Logger::Log(Solution *s) {
   _file << "\n";
 }
 void Logger::Log(double value) { _file << value << ";\n"; }
+void Logger::Log(int gen, double best, double avg, double worst) {
+  _file << gen << ";" << best << ";" << avg << ";" << worst << "\n";
+}
