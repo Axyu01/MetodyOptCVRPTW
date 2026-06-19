@@ -201,7 +201,19 @@ pozostałe utrzymywane na wartości wybranej w poprzedniej fazie (tzw. \textit{s
 
 Kryterium zatrzymania podczas strojenia: stały budżet $B = 300\,000$ wywołań
 funkcji oceny. Każda konfiguracja testowana $N=5$ razy niezależnie.
-Miara jakości: średnia wartość funkcji oceny z ostatniej generacji.
+
+\textbf{Miary jakości stosowane w tabelach strojenia:}
+\begin{itemize}
+    \item Wartość dla instancji (np.\ kolumna \textbf{C101}) -- średnia arytmetyczna
+          wartości funkcji oceny najlepszego osobnika z ostatniej generacji,
+          uśredniona po $N=5$ niezależnych uruchomieniach.
+    \item \textbf{OVERALL} -- średnia arytmetyczna wartości z trzech instancji
+          strojenia (C101, R101, RC101); używana jako kryterium wyboru zwycięzcy fazy.
+\end{itemize}
+
+Odchylenie standardowe nie jest wyznaczane podczas strojenia ze względu na
+małą liczbę powtórzeń ($N=5$) -- służy ono wyłącznie do selekcji wariantów,
+nie do wnioskowania statystycznego.
 
 Przeprowadzono \textbf{dwa niezależne potoki strojenia}:
 \begin{itemize}
