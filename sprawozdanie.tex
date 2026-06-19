@@ -129,7 +129,7 @@ Zaimplementowano klasyczny algorytm ewolucyjny z następującymi składowymi:
 Po standardowej mutacji z określonymi prawdopodobieństwami stosowane są trzy
 dodatkowe operatory, działające na poziomie tras:
 
-\paragraph{Repair (naprawa okien czasowych).}
+\paragraph{Repair (naprawa okien czasowych):}
 Operator przechodzi genom i identyfikuje klientów, dla których czas przyjazdu
 przekracza $l_i$ (spóźnienie). Klientów naruszających okno czasowe wycina
 z bieżącej pozycji i próbuje wstawić ich w inne miejsce genomu, gdzie ograniczenie
@@ -139,7 +139,7 @@ bez ingerencji w ogólną strukturę podziału na trasy.
 
 \textbf{Parametr:} \texttt{REPAIRp} -- prawdopodobieństwo zastosowania operatora.
 
-\paragraph{OptimizeTracks (lokalna optymalizacja kolejności w trasie).}
+\paragraph{OptimizeTracks (lokalna optymalizacja kolejności w trasie):}
 Dla każdej trasy z osobna wykonuje zachłanne wstawianie (\textit{greedy insertion}):
 buduje trasę od nowa, w każdym kroku wybierając klienta minimalizującego
 bieżący koszt cząstkowy. Operator nie przenosi klientów między trasami -- optymalizuje
@@ -147,7 +147,7 @@ wyłącznie kolejność obsługi w obrębie jednej trasy.
 
 \textbf{Parametr:} \texttt{OPTp} -- prawdopodobieństwo zastosowania operatora.
 
-\paragraph{RedistributeLocations (redystrybucja klientów między trasami).}
+\paragraph{RedistributeLocations (redystrybucja klientów między trasami):}
 Wybiera losową trasę-dawcę i losowego klienta; próbuje przenieść go na każdą
 możliwą pozycję w każdej innej trasie (biorcy). Akceptuje ruch, jeśli obniża
 łączny koszt. Operator optymalizuje podział klientów między trasy, czego nie
@@ -156,10 +156,10 @@ potrafią krzyżowanie ani standardowa mutacja (operują na całym genomie).
 \textbf{Parametry:} \texttt{REDISTp} -- prawdopodobieństwo zastosowania;
 \texttt{REDIST\_TRIES} -- liczba losowanych par dawca--klient.
 
-\paragraph{Kolejność stosowania.}
+\paragraph{Kolejność stosowania:}
 Operatory stosowane są sekwencyjnie po mutacji standardowej:
 RedistributeLocations $\to$ Repair $\to$ OptimizeTracks.
-Kolejność ma znaczenie: redistribucja zmienia strukturę tras, naprawa eliminuje
+Kolejność ma znaczenie: redystrybucja zmienia strukturę tras, naprawa eliminuje
 naruszenia w nowych trasach, optymalizacja dopracowuje kolejność po naprawie.
 
 % =============================================================================
@@ -200,8 +200,8 @@ Strojenie przeprowadzono metodą \textbf{jednowymiarowej analizy wrażliwości}
 pozostałe utrzymywane na wartości wybranej w poprzedniej fazie (tzw. \textit{sequential tuning}).
 
 Kryterium zatrzymania podczas strojenia: stały budżet $B = 300\,000$ wywołań
-funkcji celu. Każda konfiguracja testowana $N=5$ razy niezależnie.
-Miara jakości: średnia wartość funkcji celu z ostatniej generacji.
+funkcji oceny. Każda konfiguracja testowana $N=5$ razy niezależnie.
+Miara jakości: średnia wartość funkcji oceny z ostatniej generacji.
 
 Przeprowadzono \textbf{dwa niezależne potoki strojenia}:
 \begin{itemize}
