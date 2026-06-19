@@ -20,7 +20,8 @@ static mutex cout_mtx;
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
-const int    N_RUNS   = 5;
+const int    N_RUNS     = 5;   // runs per config during tuning
+const int    CMP_RUNS   = 10;  // runs per config during final comparison
 const int    T_BUDGET = 300'000;   // evals per run during tuning
 
 struct Instance { string path; int size; string name; };
@@ -388,7 +389,7 @@ EvoConfig best_ops_off() {
     return c;
 }
 
-// Runs N_RUNS stagnation-based trials on one instance in parallel.
+// Runs CMP_RUNS stagnation-based trials on one instance in parallel.
 double cmp_instance(const Instance& inst, const EvoConfig& cfg,
                     const string& label, const string& out_dir) {
     Problem* problem = new Problem(inst.path, inst.size);
@@ -396,7 +397,7 @@ double cmp_instance(const Instance& inst, const EvoConfig& cfg,
     problem->LATE_ARRIVAL_PENALTY_MULTIPLAYER  = 0.01;
 
     vector<future<double>> futs;
-    for (int r = 0; r < N_RUNS; r++) {
+    for (int r = 0; r < CMP_RUNS; r++) {
         string csv = out_dir + "/" + inst.name + "_" + label + "_" + to_string(r) + ".csv";
         futs.push_back(async(launch::async, [&, csv]() {
             return run_one_stagnation(problem, cfg, csv, STAG_GENS, MAX_EVALS);
@@ -405,7 +406,7 @@ double cmp_instance(const Instance& inst, const EvoConfig& cfg,
     double sum = 0;
     for (auto& f : futs) sum += f.get();
     delete problem;
-    double avg = sum / N_RUNS;
+    double avg = sum / CMP_RUNS;
     {
         lock_guard<mutex> lk(cout_mtx);
         cout << "  " << label << "  " << inst.name
@@ -424,7 +425,7 @@ void run_comparison() {
     ofstream summary(OUT + "/summary.txt");
     summary << "FINAL COMPARISON\n"
             << "Stagnation: " << STAG_GENS << " gens  Max evals: " << MAX_EVALS
-            << "  Runs per instance: " << N_RUNS << "\n\n";
+            << "  Runs per instance: " << CMP_RUNS << "\n\n";
 
     auto run_config = [&](const string& label, const EvoConfig& cfg,
                           const string& dir) {

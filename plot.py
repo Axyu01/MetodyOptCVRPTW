@@ -23,7 +23,8 @@ except ImportError:
     sys.exit("pip install matplotlib numpy")
 
 PLOT_DIR = Path("out/plots")
-N_RUNS   = 5
+N_RUNS   = 5    # tuning runs per variant
+CMP_RUNS = 10   # comparison runs per instance
 TUNE_INSTANCES = ["c101", "r101", "rc101"]
 
 COL_ON  = "#1f77b4"
@@ -51,9 +52,11 @@ def parse_csv(path):
     return {"gen": gen, "best": best, "avg": avg, "worst": worst}
 
 
-def load_runs(directory, inst, tag):
+def load_runs(directory, inst, tag, n=None):
+    if n is None:
+        n = N_RUNS
     runs = []
-    for r in range(N_RUNS):
+    for r in range(n):
         p = Path(directory) / f"{inst}_{tag}_{r}.csv"
         if p.exists():
             runs.append(parse_csv(p))
@@ -262,8 +265,8 @@ CMP_LABELS    = ["C101","C102","C201","C202","R101","R102","R201","R202",
                  "RC101","RC102","RC201","RC202"]
 
 def plot_compare_bar():
-    on_vals  = [final_avg(load_runs("out/compare/on",  inst, "ops_on"))  for inst in CMP_INSTANCES]
-    off_vals = [final_avg(load_runs("out/compare/off", inst, "ops_off")) for inst in CMP_INSTANCES]
+    on_vals  = [final_avg(load_runs("out/compare/on",  inst, "ops_on",  CMP_RUNS)) for inst in CMP_INSTANCES]
+    off_vals = [final_avg(load_runs("out/compare/off", inst, "ops_off", CMP_RUNS)) for inst in CMP_INSTANCES]
 
     x = np.arange(len(CMP_INSTANCES))
     w = 0.38
@@ -297,8 +300,8 @@ def plot_compare_bar():
 
 def plot_compare_convergence(inst_name):
     """Convergence curves: ops_on vs ops_off for one instance from compare/."""
-    on_runs  = load_runs("out/compare/on",  inst_name, "ops_on")
-    off_runs = load_runs("out/compare/off", inst_name, "ops_off")
+    on_runs  = load_runs("out/compare/on",  inst_name, "ops_on",  CMP_RUNS)
+    off_runs = load_runs("out/compare/off", inst_name, "ops_off", CMP_RUNS)
 
     fig, ax = plt.subplots(figsize=(10, 5))
 
@@ -335,7 +338,7 @@ def write_compare_csv():
                 ("ops_on",  "ops_on",  "out/compare/on"),
                 ("ops_off", "ops_off", "out/compare/off"),
             ]:
-                runs = load_runs(d, inst, label)
+                runs = load_runs(d, inst, label, CMP_RUNS)
                 w.writerow([inst, config,
                              f"{final_avg(runs):.2f}",
                              f"{final_std(runs):.2f}",
@@ -354,8 +357,8 @@ def plot_compare_grouped_by_family():
         "RC2": ["rc201","rc202"],
     }
     fam_names = list(families.keys())
-    on_fam  = [np.mean([final_avg(load_runs("out/compare/on",  i, "ops_on"))  for i in v]) for v in families.values()]
-    off_fam = [np.mean([final_avg(load_runs("out/compare/off", i, "ops_off")) for i in v]) for v in families.values()]
+    on_fam  = [np.mean([final_avg(load_runs("out/compare/on",  i, "ops_on",  CMP_RUNS)) for i in v]) for v in families.values()]
+    off_fam = [np.mean([final_avg(load_runs("out/compare/off", i, "ops_off", CMP_RUNS)) for i in v]) for v in families.values()]
 
     x = np.arange(len(fam_names))
     w = 0.38
