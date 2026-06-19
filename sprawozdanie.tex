@@ -842,10 +842,17 @@ porównanie \textit{względne} ops\_on vs ops\_off w identycznych warunkach.
     \item Zastosowana penalizacja (współczynnik 0{,}01 za spóźnienie) jest zbyt
           mała, by zapewnić dopuszczalność rozwiązań. Wyniki R/RC poniżej BKS
           jednoznacznie wskazują na naruszenia okien czasowych.
-    \item Liczba powtórzeń $N=5$ daje ograniczoną moc statystyczną -- różnice
+    \item Liczba powtórzeń $N=10$ daje ograniczoną moc statystyczną -- różnice
           poniżej 2\% mogą nie być istotne statystycznie.
     \item Strojenie metodą one-factor-at-a-time nie gwarantuje globalnego optimum
           w przestrzeni parametrów -- interakcje między parametrami nie są badane.
+    \item Z wykresów zbieżności widać, że algorytm zbiega bardzo szybko --
+          już po kilkuset pokoleniach krzywa najlepszego rozwiązania praktycznie
+          się wypłaszcza. Wskazuje to na przedwczesną utratę różnorodności populacji
+          i zbyt wczesną eksploatację lokalnego optimum. Potencjalne kierunki poprawy
+          to zwiększenie rozmiaru populacji (co spowalnia utratę różnorodności),
+          wprowadzenie mechanizmów utrzymania różnorodności (np.\ fitness sharing,
+          crowding) lub zastosowanie restartów populacji po wykryciu stagnacji.
 \end{itemize}
 
 \end{document}
