@@ -354,7 +354,7 @@ EvoConfig tune_pipeline(EvoConfig base, bool with_ops,
 // ─── Final comparison ────────────────────────────────────────────────────────
 
 const int STAG_GENS = 50000;   // stop if no improvement for this many generations
-const int MAX_EVALS = 1000000; // hard cap per run
+const int MAX_EVALS = 10000000; // hard cap per run (50k stagnation x pop50 = 2.5M typical)
 
 const Instance CMP_INSTANCES[] = {
     {"./problems/solomon-100/c101.txt",  100, "c101"},
