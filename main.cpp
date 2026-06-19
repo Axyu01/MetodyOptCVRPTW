@@ -6,8 +6,6 @@
 #include <ctime>
 #include <algorithm>
 #include <iomanip>
-#include <future>
-#include <mutex>
 #include "Problem.h"
 #include "CrossOps.h"
 #include "MutationOps.h"
@@ -15,8 +13,6 @@
 #include "Logger.h"
 #include "EVOTest.h"
 using namespace std;
-
-static mutex cout_mtx;
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -139,22 +135,18 @@ double run_one_stagnation(Problem* problem, const EvoConfig& cfg,
     return cost;
 }
 
-// N_RUNS parallel trials on one instance. Returns mean final-best.
+// N_RUNS sequential trials on one instance. Returns mean final-best.
 double run_instance(const Instance& inst, const EvoConfig& cfg,
                     const string& tag, int budget, const string& out_dir) {
     Problem* problem = new Problem(inst.path, inst.size);
     problem->EARLY_ARRIVAL_PENALTY_MULTIPLAYER = 0;
     problem->LATE_ARRIVAL_PENALTY_MULTIPLAYER  = 0.01;
 
-    vector<future<double>> futs;
+    double sum = 0;
     for (int r = 0; r < N_RUNS; r++) {
         string csv = out_dir + "/" + inst.name + "_" + tag + "_" + to_string(r) + ".csv";
-        futs.push_back(async(launch::async, [&, r, csv]() {
-            return run_one(problem, cfg, csv, budget);
-        }));
+        sum += run_one(problem, cfg, csv, budget);
     }
-    double sum = 0;
-    for (auto& f : futs) sum += f.get();
     delete problem;
     return sum / N_RUNS;
 }
@@ -171,17 +163,13 @@ struct PhaseResult {
     double overall_avg;
 };
 
-// Runs all variants on all 3 instances (N_RUNS each → 15 runs per variant).
-// Picks winner by lowest overall avg. Logs to out_dir.
+// Runs all variants on all 3 instances (N_RUNS each). Picks winner by lowest overall avg.
 PhaseResult run_phase(const string& phase_name,
                       const vector<Variant>& variants,
                       int budget, const string& out_dir,
                       ofstream& summary) {
-    {
-        lock_guard<mutex> lk(cout_mtx);
-        cout << "\n--- " << phase_name << " ---" << endl;
-        summary << "\n--- " << phase_name << " ---\n";
-    }
+    cout << "\n--- " << phase_name << " ---" << endl;
+    summary << "\n--- " << phase_name << " ---\n";
 
     PhaseResult best;
     best.overall_avg = 1e18;
@@ -189,14 +177,8 @@ PhaseResult run_phase(const string& phase_name,
     for (auto& v : variants) {
         double inst_avgs[3];
         double total = 0;
-        // Run all 3 instances concurrently (3x5 = 15 threads on a 16-core machine)
-        future<double> inst_futs[N_INSTANCES];
-        for (int i = 0; i < N_INSTANCES; i++)
-            inst_futs[i] = async(launch::async, [&, i]() {
-                return run_instance(INSTANCES[i], v.cfg, v.tag, budget, out_dir);
-            });
         for (int i = 0; i < N_INSTANCES; i++) {
-            inst_avgs[i] = inst_futs[i].get();
+            inst_avgs[i] = run_instance(INSTANCES[i], v.cfg, v.tag, budget, out_dir);
             total += inst_avgs[i];
         }
         double overall = total / N_INSTANCES;
@@ -213,19 +195,13 @@ PhaseResult run_phase(const string& phase_name,
             for (int i = 0; i < N_INSTANCES; i++) best.inst_avgs[i] = inst_avgs[i];
             best.overall_avg = overall;
         }
-        {
-            lock_guard<mutex> lk(cout_mtx);
-            cout << line << endl;
-            summary << line << "\n";
-        }
+        cout << line << endl;
+        summary << line << "\n";
     }
-    {
-        lock_guard<mutex> lk(cout_mtx);
-        cout << "  WINNER: " << best.winner_tag
-             << "  (avg=" << fixed << setprecision(1) << best.overall_avg << ")" << endl;
-        summary << "  WINNER: " << best.winner_tag
-                << "  (avg=" << fixed << setprecision(1) << best.overall_avg << ")\n";
-    }
+    cout << "  WINNER: " << best.winner_tag
+         << "  (avg=" << fixed << setprecision(1) << best.overall_avg << ")" << endl;
+    summary << "  WINNER: " << best.winner_tag
+            << "  (avg=" << fixed << setprecision(1) << best.overall_avg << ")\n";
     return best;
 }
 
@@ -236,14 +212,11 @@ EvoConfig tune_pipeline(EvoConfig base, bool with_ops,
     string label = with_ops ? "OPS_ON" : "OPS_OFF";
     string summary_path = out_dir + "/summary_" + label + ".txt";
     ofstream summary(summary_path);
-    {
-        lock_guard<mutex> lk(cout_mtx);
-        cout << "\n\n========================================" << endl;
-        cout << "  PIPELINE: " << label << endl;
-        cout << "========================================" << endl;
-        summary << "PIPELINE: " << label << "\nBudget per run: " << budget
-                << "  Runs: " << N_RUNS << "x3 instances\n";
-    }
+    cout << "\n\n========================================" << endl;
+    cout << "  PIPELINE: " << label << endl;
+    cout << "========================================" << endl;
+    summary << "PIPELINE: " << label << "\nBudget per run: " << budget
+            << "  Runs: " << N_RUNS << "x3 instances\n";
 
     EvoConfig cfg = base;
 
@@ -343,11 +316,8 @@ EvoConfig tune_pipeline(EvoConfig base, bool with_ops,
         "  REPAIRp="   + to_string(cfg.REPAIRp)  + "\n"
         "  OPTp="      + to_string(cfg.OPTp)     + "\n"
         "  REDISTp="   + to_string(cfg.REDISTp)  + "\n";
-    {
-        lock_guard<mutex> lk(cout_mtx);
-        cout << final_line;
-        summary << final_line;
-    }
+    cout << final_line;
+    summary << final_line;
     summary.close();
     return cfg;
 }
@@ -389,29 +359,22 @@ EvoConfig best_ops_off() {
     return c;
 }
 
-// Runs CMP_RUNS stagnation-based trials on one instance in parallel.
+// Runs CMP_RUNS stagnation-based trials on one instance sequentially.
 double cmp_instance(const Instance& inst, const EvoConfig& cfg,
                     const string& label, const string& out_dir) {
     Problem* problem = new Problem(inst.path, inst.size);
     problem->EARLY_ARRIVAL_PENALTY_MULTIPLAYER = 0;
     problem->LATE_ARRIVAL_PENALTY_MULTIPLAYER  = 0.01;
 
-    vector<future<double>> futs;
+    double sum = 0;
     for (int r = 0; r < CMP_RUNS; r++) {
         string csv = out_dir + "/" + inst.name + "_" + label + "_" + to_string(r) + ".csv";
-        futs.push_back(async(launch::async, [&, csv]() {
-            return run_one_stagnation(problem, cfg, csv, STAG_GENS, MAX_EVALS);
-        }));
+        sum += run_one_stagnation(problem, cfg, csv, STAG_GENS, MAX_EVALS);
     }
-    double sum = 0;
-    for (auto& f : futs) sum += f.get();
     delete problem;
     double avg = sum / CMP_RUNS;
-    {
-        lock_guard<mutex> lk(cout_mtx);
-        cout << "  " << label << "  " << inst.name
-             << "  avg=" << fixed << setprecision(1) << avg << endl;
-    }
+    cout << "  " << label << "  " << inst.name
+         << "  avg=" << fixed << setprecision(1) << avg << endl;
     return avg;
 }
 
@@ -432,16 +395,9 @@ void run_comparison() {
         cout << "\n=== " << label << " ===" << endl;
         summary << "=== " << label << " ===\n";
 
-        // All 12 instances in parallel (12x5 = 60 threads)
-        future<double> futs[N_CMP];
-        for (int i = 0; i < N_CMP; i++)
-            futs[i] = async(launch::async, [&, i]() {
-                return cmp_instance(CMP_INSTANCES[i], cfg, label, dir);
-            });
-
         double total = 0;
         for (int i = 0; i < N_CMP; i++) {
-            double avg = futs[i].get();
+            double avg = cmp_instance(CMP_INSTANCES[i], cfg, label, dir);
             string line = "  " + CMP_INSTANCES[i].name
                         + "  avg=" + to_string((int)avg);
             summary << line << "\n";
