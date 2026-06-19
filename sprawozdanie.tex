@@ -234,9 +234,7 @@ poprawa najlepszego rozwiązania (twardy limit: 1\,000\,000 wywołań funkcji ce
 \subsection{Środowisko obliczeniowe}
 
 Implementacja w C++17, skompilowana z flagami \texttt{-O3 -march=native -flto
--ffast-math}. Uruchomienia równoległe z użyciem \texttt{std::async} --
-w porównaniu końcowym 60 wątków jednocześnie (12 instancji $\times$ 5 uruchomień).
-Generator losowy: \texttt{thread\_local std::mt19937} (niezależny dla każdego wątku).
+-ffast-math}. Generator losowy: \texttt{std::mt19937} (Mersenne Twister).
 
 % =============================================================================
 \section{Strojenie parametrów -- potok ops\_on}

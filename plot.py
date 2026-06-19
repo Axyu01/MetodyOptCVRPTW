@@ -66,6 +66,18 @@ def final_avg(runs):
     return float(np.mean([r["best"][-1] for r in runs]))
 
 
+def final_std(runs):
+    if not runs or len(runs) < 2:
+        return float("nan")
+    return float(np.std([r["best"][-1] for r in runs], ddof=1))
+
+
+def final_best_val(runs):
+    if not runs:
+        return float("nan")
+    return float(min(r["best"][-1] for r in runs))
+
+
 def mean_curve(runs, key="best"):
     if not runs:
         return [], []
@@ -311,6 +323,26 @@ def plot_compare_convergence(inst_name):
     save(fig, f"compare_conv_{inst_name}")
 
 
+def write_compare_csv():
+    """Write out/compare/results.csv with avg;std;best per instance per config."""
+    import csv
+    out = Path("out/compare/results.csv")
+    with open(out, "w", newline="") as f:
+        w = csv.writer(f, delimiter=";")
+        w.writerow(["instance", "config", "avg", "std", "best"])
+        for inst in CMP_INSTANCES:
+            for config, label, d in [
+                ("ops_on",  "ops_on",  "out/compare/on"),
+                ("ops_off", "ops_off", "out/compare/off"),
+            ]:
+                runs = load_runs(d, inst, label)
+                w.writerow([inst, config,
+                             f"{final_avg(runs):.2f}",
+                             f"{final_std(runs):.2f}",
+                             f"{final_best_val(runs):.2f}"])
+    print(f"  {out}")
+
+
 def plot_compare_grouped_by_family():
     """Bar chart grouped by family (C1, C2, R1, R2, RC1, RC2)."""
     families = {
@@ -358,6 +390,7 @@ def main():
     print("Generating tuning plots (ops_off)...")
     plot_tuning_off()
     print("Generating comparison plots...")
+    write_compare_csv()
     plot_compare_bar()
     plot_compare_grouped_by_family()
     for inst in ["c101", "r101", "rc101"]:
