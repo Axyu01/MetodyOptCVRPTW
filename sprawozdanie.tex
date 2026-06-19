@@ -663,31 +663,31 @@ artefaktem obecności lub braku operatorów niestandardowych.
 Porównanie przeprowadzono z optymalnymi konfiguracjami obu potoków na 12
 instancjach Solomona. Kryterium zatrzymania: brak poprawy przez 10\,000
 kolejnych pokoleń lub limit 1\,000\,000 wywołań funkcji celu.
-$N=5$ niezależnych uruchomień na instancję.
+$N=10$ niezależnych uruchomień na instancję.
 
 \begin{table}[H]
 \centering
-\caption{Wyniki porównania końcowego -- średni koszt, odchylenie standardowe i najlepszy wynik z 5 uruchomień}
+\caption{Wyniki porównania końcowego -- średni koszt, odchylenie standardowe i najlepszy wynik z 10 uruchomień}
 \begin{tabular}{lrrrrrrl}
 \toprule
  & \multicolumn{3}{c}{ops\_on} & \multicolumn{3}{c}{ops\_off} & \\
 \cmidrule(lr){2-4}\cmidrule(lr){5-7}
 Instancja & avg & std & best & avg & std & best & Zwycięzca \\
 \midrule
-C101  & 1406 & 51  & 1375 & \textbf{1503} & 99  & 1361 & ops\_on ($-6{,}4\%$) \\
-C102  & 1362 & 52  & 1293 & \textbf{1348} & 99  & 1183 & ops\_off ($-1{,}0\%$) \\
-C201  & \textbf{1010} & 65  & 946  & 1151 & 86  & 1028 & ops\_on ($-12{,}2\%$) \\
-C202  & \textbf{1149} & 103 & 1043 & 1163 & 91  & 1048 & ops\_on ($-1{,}2\%$) \\
-R101  & \textbf{1238} & 30  & 1193 & 1251 & 49  & 1177 & ops\_on ($-1{,}0\%$) \\
-R102  & \textbf{1212} & 53  & 1144 & 1225 & 39  & 1172 & ops\_on ($-1{,}1\%$) \\
-R201  & \textbf{1174} & 37  & 1138 & 1180 & 45  & 1125 & ops\_on ($-0{,}5\%$) \\
-R202  & 1180 & 64  & 1079 & \textbf{1139} & 33  & 1101 & ops\_off ($-3{,}5\%$) \\
-RC101 & \textbf{1482} & 24  & 1445 & 1482 & 94  & 1353 & remis \\
-RC102 & \textbf{1528} & 40  & 1480 & 1547 & 90  & 1437 & ops\_on ($-1{,}2\%$) \\
-RC201 & \textbf{1321} & 36  & 1261 & 1361 & 62  & 1284 & ops\_on ($-2{,}9\%$) \\
-RC202 & 1326 & 87  & 1226 & \textbf{1317} & 47  & 1270 & ops\_off ($-0{,}7\%$) \\
+C101  & 1459 & 76  & 1344 & \textbf{1432} & 101 & 1312 & ops\_off ($-1{,}9\%$) \\
+C102  & 1391 & 42  & 1327 & \textbf{1348} & 67  & 1231 & ops\_off ($-3{,}1\%$) \\
+C201  & \textbf{1063} & 44  & 988  & 1131 & 72  & 1027 & ops\_on ($-6{,}0\%$) \\
+C202  & \textbf{1096} & 80  & 1008 & 1122 & 75  & 1027 & ops\_on ($-2{,}3\%$) \\
+R101  & 1262 & 45  & 1193 & \textbf{1255} & 53  & 1200 & ops\_off ($-0{,}6\%$) \\
+R102  & \textbf{1229} & 64  & 1154 & 1231 & 36  & 1187 & ops\_on ($-0{,}2\%$) \\
+R201  & 1227 & 38  & 1150 & \textbf{1184} & 31  & 1137 & ops\_off ($-3{,}5\%$) \\
+R202  & \textbf{1141} & 47  & 1063 & 1164 & 51  & 1108 & ops\_on ($-2{,}0\%$) \\
+RC101 & 1548 & 91  & 1400 & \textbf{1505} & 67  & 1403 & ops\_off ($-2{,}8\%$) \\
+RC102 & \textbf{1473} & 51  & 1366 & 1526 & 107 & 1347 & ops\_on ($-3{,}5\%$) \\
+RC201 & 1377 & 45  & 1325 & \textbf{1315} & 73  & 1208 & ops\_off ($-4{,}5\%$) \\
+RC202 & 1286 & 38  & 1234 & \textbf{1262} & 65  & 1175 & ops\_off ($-1{,}9\%$) \\
 \midrule
-\textbf{OVERALL} & \textbf{1282} & -- & -- & 1306 & -- & -- & \textbf{ops\_on ($-1{,}8\%$)} \\
+\textbf{OVERALL} & 1296 & -- & -- & \textbf{1290} & -- & -- & \textbf{ops\_off ($-0{,}5\%$)} \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -711,7 +711,7 @@ RC202 & 1326 & 87  & 1226 & \textbf{1317} & 47  & 1270 & ops\_off ($-0{,}7\%$) \
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.95\textwidth]{out/plots/compare_conv_c101.png}
-    \caption{Przebieg EA dla instancji C101 -- uśredniony przebieg 5 uruchomień.}
+    \caption{Przebieg EA dla instancji C101 -- uśredniony przebieg 10 uruchomień.}
 \end{figure}
 
 \begin{figure}[H]
@@ -732,33 +732,35 @@ RC202 & 1326 & 87  & 1226 & \textbf{1317} & 47  & 1270 & ops\_off ($-0{,}7\%$) \
 
 \subsection{Wpływ operatorów niestandardowych}
 
-EA z operatorami (ops\_on) osiągnął globalnie lepszy wynik niż EA bazowy (ops\_off):
-średni koszt 1282 vs 1306 (poprawa 1{,}8\%). ops\_on wygrał na 9 z 12 instancji.
-Wzorce różnią się jednak między rodzinami instancji:
+EA bazowy (ops\_off) osiągnął globalnie nieco lepszy wynik niż EA z operatorami (ops\_on):
+średni koszt OVERALL 1290 vs 1296 (różnica 0{,}5\%). ops\_off wygrał na 7 z 12 instancji.
+Wyniki są jednak niejednorodne i zależą silnie od rodziny instancji:
 
 \begin{itemize}
-    \item \textbf{C1 (clustered, wąskie TW):} wyniki mieszane -- ops\_on wygrywa C101
-          (1406 vs 1503, przewaga 6\%), ops\_off wygrywa C102 nieznacznie (1348 vs 1362).
-          Odchylenia standardowe dla ops\_off są tu szczególnie duże (std=99),
-          co wskazuje na dużą niestabilność EA bazowego na instancjach klastrowych.
+    \item \textbf{C1 (clustered, wąskie TW):} ops\_off wygrywa obie instancje
+          (1432 vs 1459 dla C101, 1348 vs 1391 dla C102). Wąskie okna czasowe
+          ograniczają skuteczność operatora Repair -- naruszenia są trudne do naprawienia
+          bez cofania całego przydziału klientów do tras.
     \item \textbf{C2 (clustered, szerokie TW):} ops\_on wygrywa obie instancje
-          (o 12\% dla C201). Szerokie okna dają operatorom swobodę działania --
-          Repair i OptimizeTracks mogą efektywnie dopracować kolejność w klastrach.
-    \item \textbf{R1/R2 (random):} ops\_on wygrywa 3 z 4 instancji, ale różnice
-          są małe (1--4\%). Wyjątek: R202 gdzie ops\_off jest lepszy (1139 vs 1180).
-    \item \textbf{RC1/RC2 (mixed):} ops\_on wygrywa 3 z 4 instancji (remis RC101,
-          ops\_on wygrywa RC102 i RC201). Operatory niestandardowe lepiej radzą sobie
-          z heterogeniczną strukturą instancji mieszanych.
+          wyraźnie (o 6\% dla C201: 1063 vs 1131). Szerokie okna dają operatorom
+          swobodę działania -- OptimizeTracks i RedistributeLocations mogą efektywnie
+          przekształcać trasy w klastrach bez ryzyka naruszenia TW.
+    \item \textbf{R1/R2 (random):} wyniki mieszane -- każda konfiguracja wygrywa
+          po 2 instancje. Różnice są małe (0{,}2--3{,}5\%), co sugeruje, że operatory
+          nie dają znaczącej przewagi na losowo rozmieszczonych klientach.
+    \item \textbf{RC1/RC2 (mixed):} ops\_off wygrywa 3 z 4 instancji (RC101, RC201, RC202),
+          ops\_on wygrywa tylko RC102. Największa przewaga ops\_off widoczna dla RC201
+          (1315 vs 1377, 4{,}5\%).
 \end{itemize}
 
 \subsection{Kluczowe obserwacje}
 
 \begin{enumerate}
-    \item \textbf{Operatory niestandardowe poprawiają wyniki globalnie.}
-          ops\_on wygrywa na 9 z 12 instancji i osiąga lepszy OVERALL (1282 vs 1306,
-          poprawa 1{,}8\%). Wzorzec jest spójny: ops\_on wygrywa szczególnie wyraźnie
-          na instancjach C2 (szerokie okna) i RC, natomiast na C1 (wąskie okna)
-          wyniki są mieszane. Typ instancji powinien informować wybór metody.
+    \item \textbf{Operatory niestandardowe nie poprawiają wyników globalnie.}
+          ops\_off wygrywa na 7 z 12 instancji i osiąga nieco lepszy OVERALL
+          (1290 vs 1296, różnica 0{,}5\%). Wynik jest zaskakujący i wskazuje,
+          że operatory nie zawsze pomagają -- ich skuteczność zależy od struktury
+          instancji. ops\_on wygrywa wyraźnie tylko na rodzinie C2 (szerokie okna).
     \item \textbf{Parametry EA są niemal identyczne w obu potokach.}
           popSize=50, OX, Xp=75\%, Mp=25\%, turSize=2 okazały się optymalne
           niezależnie od obecności operatorów niestandardowych.
@@ -795,23 +797,23 @@ na naruszanie okien czasowych kosztem minimalnej kary.
 
 \begin{table}[H]
 \centering
-\caption{Porównanie z BKS -- wyniki ops\_on (lepszy wariant globalnie)}
+\caption{Porównanie z BKS -- wyniki obu konfiguracji}
 \begin{tabular}{lrrrrr}
 \toprule
 Instancja & BKS & ops\_on avg & gap (\%) & ops\_off avg & gap (\%) \\
 \midrule
-C101  & 828{,}94  & 1406 & $+69{,}6\%$ & 1503 & $+81{,}3\%$ \\
-C102  & 828{,}94  & 1362 & $+64{,}3\%$ & 1348 & $+62{,}6\%$ \\
-C201  & 591{,}56  & 1010 & $+70{,}7\%$ & 1151 & $+94{,}6\%$ \\
-C202  & 591{,}56  & 1149 & $+94{,}3\%$ & 1163 & $+96{,}6\%$ \\
-R101  & 1650{,}80 & 1238 & $-25{,}0\%$ & 1251 & $-24{,}2\%$ \\
-R102  & 1486{,}12 & 1212 & $-18{,}4\%$ & 1225 & $-17{,}6\%$ \\
-R201  & 1252{,}37 & 1174 & $-6{,}2\%$  & 1180 & $-5{,}8\%$  \\
-R202  & 1191{,}70 & 1180 & $-1{,}0\%$  & 1139 & $-4{,}4\%$  \\
-RC101 & 1696{,}95 & 1482 & $-12{,}7\%$ & 1482 & $-12{,}6\%$ \\
-RC102 & 1554{,}75 & 1528 & $-1{,}7\%$  & 1547 & $-0{,}5\%$  \\
-RC201 & 1406{,}94 & 1321 & $-6{,}1\%$  & 1361 & $-3{,}3\%$  \\
-RC202 & 1365{,}65 & 1326 & $-2{,}9\%$  & 1317 & $-3{,}6\%$  \\
+C101  & 828{,}94  & 1459 & $+76{,}0\%$ & 1432 & $+72{,}7\%$ \\
+C102  & 828{,}94  & 1391 & $+67{,}8\%$ & 1348 & $+62{,}6\%$ \\
+C201  & 591{,}56  & 1063 & $+79{,}7\%$ & 1131 & $+91{,}2\%$ \\
+C202  & 591{,}56  & 1096 & $+85{,}3\%$ & 1122 & $+89{,}7\%$ \\
+R101  & 1650{,}80 & 1262 & $-23{,}5\%$ & 1255 & $-23{,}9\%$ \\
+R102  & 1486{,}12 & 1229 & $-17{,}3\%$ & 1231 & $-17{,}2\%$ \\
+R201  & 1252{,}37 & 1227 & $-2{,}0\%$  & 1184 & $-5{,}5\%$  \\
+R202  & 1191{,}70 & 1141 & $-4{,}3\%$  & 1164 & $-2{,}3\%$  \\
+RC101 & 1696{,}95 & 1548 & $-8{,}8\%$  & 1505 & $-11{,}3\%$ \\
+RC102 & 1554{,}75 & 1473 & $-5{,}2\%$  & 1526 & $-1{,}8\%$  \\
+RC201 & 1406{,}94 & 1377 & $-2{,}1\%$  & 1315 & $-6{,}5\%$  \\
+RC202 & 1365{,}65 & 1286 & $-5{,}8\%$  & 1262 & $-7{,}6\%$  \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -819,14 +821,14 @@ RC202 & 1365{,}65 & 1326 & $-2{,}9\%$  & 1317 & $-3{,}6\%$  \\
 \textbf{Interpretacja wyników względem BKS:}
 
 \begin{itemize}
-    \item \textbf{Instancje C (klastrowe):} nasze wyniki są o 57--101\% gorsze
+    \item \textbf{Instancje C (klastrowe):} nasze wyniki są o 63--91\% gorsze
           od BKS. Instancje C mają wąskie okna czasowe -- algorytm ze słabą
           karą za spóźnienie nie jest wystarczająco motywowany do ich respektowania
           i generuje trasy o mniejszym dystansie kosztem wielu naruszeń.
-    \item \textbf{Instancje R i RC:} nasze wyniki są \emph{poniżej} BKS (do $-23\%$).
+    \item \textbf{Instancje R i RC:} nasze wyniki są \emph{poniżej} BKS (do $-24\%$).
           Jest to bezpośredni dowód naruszania okien czasowych -- minimalna
           odległość dopuszczalnych tras dla R101 wynosi 1650{,}80, więc wynik
-          1265 jest fizycznie niemożliwy bez naruszeń. Mała kara (0{,}01) sprawia,
+          1262 jest fizycznie niemożliwy bez naruszeń. Mała kara (0{,}01) sprawia,
           że algorytm ignoruje okna czasowe i minimalizuje tylko dystans.
 \end{itemize}
 
