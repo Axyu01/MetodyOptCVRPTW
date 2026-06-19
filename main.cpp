@@ -353,7 +353,7 @@ EvoConfig tune_pipeline(EvoConfig base, bool with_ops,
 
 // ─── Final comparison ────────────────────────────────────────────────────────
 
-const int STAG_GENS = 3000;    // stop if no improvement for this many generations
+const int STAG_GENS = 10000;   // stop if no improvement for this many generations
 const int MAX_EVALS = 1000000; // hard cap per run
 
 const Instance CMP_INSTANCES[] = {
