@@ -20,11 +20,15 @@ using namespace std;
 const int N_RUNS   = 5;             // runs per config during tuning
 const int CMP_RUNS = 10;            // runs per config during final comparison
 
-const int TUNE_STAG_GENS = 5000;    // tuning stop: no improvement for this many gens
+const int TUNE_STAG_GENS = 5000;       // tuning stop: no improvement for this many gens
 const int TUNE_MAX_EVALS = 10'000'000; // tuning hard eval cap (safety net)
 
 const int CMP_STAG_GENS  = 10000;
 const int CMP_MAX_EVALS  = 1'000'000;
+
+// Penalty per time unit of late arrival. 0.01 was too small -- algorithm ignored TW.
+// At 1.0 a TW violation costs the same as 1 distance unit, making Repair actually useful.
+const double LATE_PENALTY = 1.0;
 
 struct Instance { string path; int size; string name; };
 const Instance INSTANCES[] = {
@@ -130,7 +134,7 @@ RunStats run_instance(const Instance& inst, const EvoConfig& cfg,
                       const string& tag, const string& out_dir) {
     Problem* problem = new Problem(inst.path, inst.size);
     problem->EARLY_ARRIVAL_PENALTY_MULTIPLAYER = 0;
-    problem->LATE_ARRIVAL_PENALTY_MULTIPLAYER  = 0.01;
+    problem->LATE_ARRIVAL_PENALTY_MULTIPLAYER  = LATE_PENALTY;
 
     vector<double> results;
     for (int r = 0; r < N_RUNS; r++) {
@@ -238,63 +242,74 @@ EvoConfig tune_pipeline(EvoConfig base, bool with_ops, const string& out_dir) {
         cfg = run_phase("Phase 2: crossover", vs, out_dir, summary).winner_cfg;
     }
 
-    // Phase 3: crossover probability
+    // Phase 3: mutation operator
+    {
+        vector<Variant> vs;
+        for (auto [name, id] : vector<pair<string,int>>{
+                {"SWAP", MutationOps::SWAP_ID}, {"INVERSE", MutationOps::INVERSE_ID}}) {
+            EvoConfig c = cfg; c.MUT_ID = id;
+            vs.push_back({"mut_" + name, c});
+        }
+        cfg = run_phase("Phase 3: mutation op", vs, out_dir, summary).winner_cfg;
+    }
+
+    // Phase 4: crossover probability
     {
         vector<Variant> vs;
         for (int xp : {25, 50, 75, 95}) {
             EvoConfig c = cfg; c.Xp = xp;
             vs.push_back({"xp" + to_string(xp), c});
         }
-        cfg = run_phase("Phase 3: Xp", vs, out_dir, summary).winner_cfg;
+        cfg = run_phase("Phase 4: Xp", vs, out_dir, summary).winner_cfg;
     }
 
-    // Phase 4: mutation probability
+    // Phase 5: mutation probability
     {
         vector<Variant> vs;
         for (int mp : {5, 25, 50, 75}) {
             EvoConfig c = cfg; c.Mp = mp;
             vs.push_back({"mp" + to_string(mp), c});
         }
-        cfg = run_phase("Phase 4: Mp", vs, out_dir, summary).winner_cfg;
+        cfg = run_phase("Phase 5: Mp", vs, out_dir, summary).winner_cfg;
     }
 
-    // Phase 5: tournament size (higher = more selection pressure = less diversity)
+    // Phase 6: tournament size (higher = more selection pressure = less diversity)
     {
         vector<Variant> vs;
         for (int ts : {2, 3, 5, 7}) {
             EvoConfig c = cfg; c.turSize = ts;
             vs.push_back({"tur" + to_string(ts), c});
         }
-        cfg = run_phase("Phase 5: turSize", vs, out_dir, summary).winner_cfg;
+        cfg = run_phase("Phase 6: turSize", vs, out_dir, summary).winner_cfg;
     }
 
     if (with_ops) {
-        // Phase 6: REPAIRp
+        // Phase 7: REPAIRp
         {
             vector<Variant> vs;
             for (int rp : {0, 10, 50, 100}) {
                 EvoConfig c = cfg; c.REPAIRp = rp;
                 vs.push_back({"repair" + to_string(rp), c});
             }
-            cfg = run_phase("Phase 6: REPAIRp", vs, out_dir, summary).winner_cfg;
+            cfg = run_phase("Phase 7: REPAIRp", vs, out_dir, summary).winner_cfg;
         }
-        // Phase 7: OPTp
+        // Phase 8: OPTp
         {
             vector<Variant> vs;
             for (int op : {0, 5, 25, 50}) {
                 EvoConfig c = cfg; c.OPTp = op;
                 vs.push_back({"opt" + to_string(op), c});
             }
-            cfg = run_phase("Phase 7: OPTp", vs, out_dir, summary).winner_cfg;
+            cfg = run_phase("Phase 8: OPTp", vs, out_dir, summary).winner_cfg;
         }
-        // Phase 8: REDISTp
+        // Phase 9: REDISTp
         {
             vector<Variant> vs;
             for (int rd : {0, 25, 75, 100}) {
                 EvoConfig c = cfg; c.REDISTp = rd;
                 vs.push_back({"redist" + to_string(rd), c});
             }
-            cfg = run_phase("Phase 8: REDISTp", vs, out_dir, summary).winner_cfg;
+            cfg = run_phase("Phase 9: REDISTp", vs, out_dir, summary).winner_cfg;
         }
     }
 
@@ -341,7 +356,7 @@ RunStats cmp_instance(const Instance& inst, const EvoConfig& cfg,
                       const string& label, const string& out_dir) {
     Problem* problem = new Problem(inst.path, inst.size);
     problem->EARLY_ARRIVAL_PENALTY_MULTIPLAYER = 0;
-    problem->LATE_ARRIVAL_PENALTY_MULTIPLAYER  = 0.01;
+    problem->LATE_ARRIVAL_PENALTY_MULTIPLAYER  = LATE_PENALTY;
 
     vector<double> results;
     for (int r = 0; r < CMP_RUNS; r++) {
