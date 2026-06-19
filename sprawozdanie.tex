@@ -1,4 +1,4 @@
-% Sprawozdanie z badań metaheurystyk dla CVRPTW
+% Sprawozdanie z badan metaheurystyk dla CVRPTW
 \documentclass[11pt,a4paper]{article}
 \usepackage[margin=1in]{geometry}
 \usepackage[utf8]{inputenc}
@@ -11,6 +11,7 @@
 \usepackage{caption}
 \usepackage{hyperref}
 \usepackage{pdflscape}
+\usepackage{amsmath}
 
 \title{Metody Optymalizacji\\Projekt: CVRPTW}
 \author{Jakub Wasilewski 263852}
@@ -18,390 +19,742 @@
 
 \begin{document}
 \maketitle
-
 \tableofcontents
 \clearpage
 
-% ─────────────────────────────────────────────────────────────────────────────
+% =============================================================================
 \section{Sformułowanie zadania}
 
-Celem zadania była implementacja i przebadanie metaheurystyki Algorytmu Ewolucyjnego (EA)
-dla \textit{Capacitated Vehicle Routing Problem with Time Windows} (CVRPTW) -- pojemnościowego
-problemu wyznaczania tras pojazdów z oknami czasowymi.
+Celem zadania była implementacja i eksperymentalne zbadanie algorytmu ewolucyjnego (EA)
+dla \textit{Capacitated Vehicle Routing Problem with Time Windows} (CVRPTW) --
+pojemnościowego problemu wyznaczania tras pojazdów z oknami czasowymi.
 
-W CVRPTW rozpatrywano $n$ klientów i $K$ pojazdów o jednakowej pojemności $Q$.
-Każdy klient $i$ posiadał: lokalizację $(x_i, y_i)$, zapotrzebowanie $d_i$, okno czasowe
-$[e_i, l_i]$ (najwcześniejszy i najpóźniejszy dozwolony czas obsługi) oraz czas obsługi $s_i$.
-Poszukiwano zestawu tras minimalizującego \textbf{łączną długość przejechanych tras} przy
-spełnieniu ograniczeń pojemności i okien czasowych.
-
-Penalizacja była dodawana za:
+W CVRPTW rozpatrywano $n$ klientów i flotę pojazdów o jednakowej pojemności $Q$,
+startujących i kończących trasę w jednym magazynie (depot).
+Każdy klient $i \in \{1,\ldots,n\}$ charakteryzowany był przez:
 \begin{itemize}
-    \item zbyt późne przybycie do klienta ($> l_i$): kara proporcjonalna do opóźnienia,
-    \item zbyt wczesne przybycie ($< e_i$): pojazd czeka bez kary (EARLY\_ARRIVAL\_PENALTY = 0).
+    \item lokalizację $(x_i, y_i)$,
+    \item zapotrzebowanie $d_i > 0$,
+    \item okno czasowe $[e_i,\, l_i]$ -- najwcześniejszy i najpóźniejszy dopuszczalny czas obsługi,
+    \item czas obsługi $s_i$.
 \end{itemize}
 
-% ─────────────────────────────────────────────────────────────────────────────
+Celem było znalezienie zestawu tras minimalizujących \textbf{łączną długość tras}
+przy zachowaniu ograniczeń pojemnościowych i okien czasowych.
+Jeśli pojazd przybywa do klienta przed $e_i$, czeka bez kary.
+Przekroczenie $l_i$ karane jest proporcjonalnie do opóźnienia (miękkie ograniczenie).
+
+% =============================================================================
 \section{Sposób rozwiązywania zadania}
 
 \subsection{Kodowanie rozwiązania}
 
-Rozwiązanie kodowane było jako permutacja liczb całkowitych o długości
-$\texttt{SIZE} + \texttt{MAX\_VEHICLES} - 1$.
-Wartości $0 \ldots \texttt{SIZE}-1$ oznaczają klientów, a wartości $\geq \texttt{SIZE}$
-są symbolami \emph{powrotu do bazy} (separatorami tras).
+Rozwiązanie kodowane jest jako permutacja liczb całkowitych o długości
+$L = \texttt{SIZE} + \texttt{MAX\_VEHICLES} - 1$.
+\begin{itemize}
+    \item Wartości $0 \ldots \texttt{SIZE}-1$ oznaczają klientów.
+    \item Wartości $\geq \texttt{SIZE}$ są separatorami tras (,,powrót do bazy'').
+\end{itemize}
 
-Przykładowo dla $n=5$ klientów i 3 pojazdów:
+Dla $n=5$ klientów i 3 pojazdów ($L=7$) przykładowy genom:
 \[
-  x = [3,\ 1,\ \mathbf{5},\ 0,\ 4,\ \mathbf{6},\ 2]
+  x = [\,3,\ 1,\ \mathbf{5},\ 0,\ 4,\ \mathbf{6},\ 2\,]
 \]
-oznacza: trasa 1: $\{3, 1\}$, trasa 2: $\{0, 4\}$, trasa 3: $\{2\}$.
+odpowiada trasom: $\{3,1\} \to \text{baza} \to \{0,4\} \to \text{baza} \to \{2\}$.
+Separatory $\geq 5$ są ignorowane pod względem tożsamości -- liczy się tylko ich
+pozycja w genomie; wartości klientów muszą tworzyć permutację $\{0,\ldots,n-1\}$.
+
+Dla instancji Solomona (100 klientów, 25 pojazdów): $L = 100 + 25 - 1 = 124$.
 
 \subsection{Ocena rozwiązania}
 
-Funkcja \texttt{EstimateSolution} symuluje przejazd każdego pojazdu:
+Funkcja \texttt{EstimateSolution} symuluje przejazd każdego pojazdu od lewej do prawej
+w genomie:
 \begin{enumerate}
-    \item Pojazd startuje z bazy w czasie $t=0$ z pełną pojemnością.
-    \item Dla każdego klienta na trasie: aktualizowany jest czas przyjazdu,
-          uwzględniane jest oczekiwanie na otwarcie okna, dodawana jest kara za
-          spóźnienie, odejmowane jest zapotrzebowanie.
-    \item Koszt to suma odległości euklidesowych plus sumaryczna kara.
+    \item Pojazd startuje z bazy ($t=0$, ładunek $=0$).
+    \item Po napotkaniu separatora: reset czasu i ładunku (powrót do bazy).
+    \item Po napotkaniu klienta $i$: sprawdzany jest ładunek (jeśli $d_i$ przekracza pozostałą
+          pojemność, automatycznie wraca do bazy), aktualizowany jest czas przyjazdu,
+          doliczana kara za spóźnienie, dodawany czas obsługi $s_i$.
+    \item Koszt całkowity = suma odległości euklidesowych + suma kar.
 \end{enumerate}
 
-% ─────────────────────────────────────────────────────────────────────────────
-\section{Metody użyte do rozwiązania zadania}
+Kary:
 \begin{itemize}
-  \item Algorytm ewolucyjny (EA) z operatorami standardowymi (krzyżowanie + mutacja swap/inverse)
-  \item Algorytm ewolucyjny z dodatkowymi operatorami niestandardowymi:
-        \textbf{Repair}, \textbf{OptimizeTracks}, \textbf{RedistributeLocations}
+    \item Spóźnienie ($t > l_i$): $\texttt{LATE\_ARRIVAL\_PENALTY} = 0{,}01 \times (t - l_i)$.
+    \item Wczesne przybycie ($t < e_i$): brak kary, pojazd czeka.
 \end{itemize}
 
-% ─────────────────────────────────────────────────────────────────────────────
+Miękkie ograniczenia umożliwiają algorytmowi eksplorację przestrzeni rozwiązań
+niekoniecznie dopuszczalnych, co ułatwia przejście przez obszary zakazane.
+
+% =============================================================================
 \section{Implementacja}
 
-\subsection{Algorytm ewolucyjny (EA)}
+\subsection{Algorytm ewolucyjny}
 \label{sec:ea}
-\begin{itemize}
-    \item \textbf{Inicjalizacja:} populacja losowych permutacji (rozmiar \texttt{popSize}).
-    \item \textbf{Selekcja:} turniejowa -- losowano \texttt{turSize} osobników, wybierano najlepszego.
-    \item \textbf{Krzyżowanie:} OX (\textit{Ordered Crossover}) lub PMX/CX; stosowane z prawdopodobieństwem \texttt{Xp}.
-    \item \textbf{Mutacja:} SWAP (zamiana dwóch losowych genów) lub INVERSE (odwrócenie segmentu);
-          stosowana z prawdopodobieństwem \texttt{Mp}.
-    \item \textbf{Elityzm:} \texttt{elitesNum} najlepszych osobników przechodzi do kolejnego pokolenia bez zmian.
-    \item \textbf{Kryterium zatrzymania:} po wykonaniu ustalonego budżetu ewaluacji $B$.
-\end{itemize}
+
+Zaimplementowano klasyczny algorytm ewolucyjny z następującymi składowymi:
+
+\begin{description}
+    \item[Inicjalizacja] Populacja $P$ losowych permutacji generowana metodą
+          Fisher-Yates ($\mathcal{O}(n)$).
+    \item[Selekcja] Turniejowa: losuje się $k = \texttt{turSize}$ osobników
+          i wybiera tego z najmniejszą wartością funkcji celu.
+          Mała wartość $k$ zwiększa presję selekcyjną łagodnie; duża szybko
+          eliminuje słabych osobników.
+    \item[Krzyżowanie] Stosowane z prawdopodobieństwem \texttt{Xp}. Dostępne operatory:
+          \begin{itemize}
+              \item \textbf{OX} (\textit{Ordered Crossover}) -- kopiuje ciągły segment z P1,
+                    uzupełnia brakujące geny w kolejności z P2. Zachowuje względną kolejność.
+              \item \textbf{PMX} (\textit{Partially Mapped Crossover}) -- definiuje odwzorowanie
+                    między segmentami rodziców i przenosi je na potomka.
+              \item \textbf{CX} (\textit{Cycle Crossover}) -- identyfikuje cykle pozycjonalne
+                    i kopiuje geny cyklicznie z P1 i P2.
+          \end{itemize}
+    \item[Mutacja] Stosowana z prawdopodobieństwem \texttt{Mp}:
+          \begin{itemize}
+              \item \textbf{SWAP} -- zamiana dwóch losowych genów.
+              \item \textbf{INVERSE} -- odwrócenie losowego segmentu genomu.
+          \end{itemize}
+    \item[Elityzm] \texttt{elitesNum} najlepszych osobników przechodzi do nowej
+          populacji bez zmian -- gwarantuje monotoniczność najlepszego rozwiązania.
+    \item[Nowa populacja] Generowana przez selekcję + krzyżowanie + mutacja
+          dla pozostałych $P - \texttt{elitesNum}$ miejsc.
+\end{description}
 
 \subsection{Operatory niestandardowe}
 \label{sec:custom_ops}
 
-\paragraph{Repair.}
-Po mutacji przeskanuj osobnika. Klientów, którzy naruszają okna czasowe
-(przybycie $> l_i$), wytnij z trasy i wstaw w możliwe miejsca innych tras gdzie
-ograniczenie jest spełnione. Operator zwiększa dopuszczalność rozwiązania bez
-zmiany ogólnej struktury permutacji.
+Po standardowej mutacji z określonymi prawdopodobieństwami stosowane są trzy
+dodatkowe operatory, działające na poziomie tras:
 
-\paragraph{OptimizeTracks.}
-Dla każdej trasy osobno uruchom lokalną optymalizację kolejności klientów
-(greedy insertion lub przeszukiwanie $k$-opt). Operator poprawia koszt wewnątrz
-trasy bez przenoszenia klientów między trasami.
+\paragraph{Repair (naprawa okien czasowych).}
+Operator przechodzi genom i identyfikuje klientów, dla których czas przyjazdu
+przekracza $l_i$ (spóźnienie). Klientów naruszających okno czasowe wycina
+z bieżącej pozycji i próbuje wstawić ich w inne miejsce genomu, gdzie ograniczenie
+jest spełnione. Jeśli żadna pozycja nie eliminuje naruszenia, klient wstawiany jest
+w miejsce minimalizującym karę. Operator poprawia dopuszczalność rozwiązania
+bez ingerencji w ogólną strukturę podziału na trasy.
 
-\paragraph{RedistributeLocations.}
-Wybierz losową trasę-dawcę i losowego klienta; spróbuj przenieść go na
-każdą możliwą pozycję w innej trasie (biorcy). Jeśli ruch obniża koszt
-i nie narusza pojemności~-- zaakceptuj. Operator optymalizuje podział klientów
-między trasami.
+\textbf{Parametr:} \texttt{REPAIRp} -- prawdopodobieństwo zastosowania operatora.
 
-\subsection{Kontrola budżetu}
-Budżet wyrażony jest w liczbie ewaluacji funkcji celu:
-$B = \texttt{loops} \times \texttt{popSize}$,
-gdzie \texttt{loops} to liczba pokoleń.
-Stosowano dwa budżety:
-\begin{itemize}
-    \item Strojenie: $B = 100 \times 100 = 10\,000$ (szybkie iteracje).
-    \item Porównanie końcowe: $B = 100 \times 100 \times 20 = 200\,000$.
-\end{itemize}
+\paragraph{OptimizeTracks (lokalna optymalizacja kolejności w trasie).}
+Dla każdej trasy z osobna wykonuje zachłanne wstawianie (\textit{greedy insertion}):
+buduje trasę od nowa, w każdym kroku wybierając klienta minimalizującego
+bieżący koszt cząstkowy. Operator nie przenosi klientów między trasami -- optymalizuje
+wyłącznie kolejność obsługi w obrębie jednej trasy.
 
-% ─────────────────────────────────────────────────────────────────────────────
+\textbf{Parametr:} \texttt{OPTp} -- prawdopodobieństwo zastosowania operatora.
+
+\paragraph{RedistributeLocations (redystrybucja klientów między trasami).}
+Wybiera losową trasę-dawcę i losowego klienta; próbuje przenieść go na każdą
+możliwą pozycję w każdej innej trasie (biorcy). Akceptuje ruch, jeśli obniża
+łączny koszt. Operator optymalizuje podział klientów między trasy, czego nie
+potrafią krzyżowanie ani standardowa mutacja (operują na całym genomie).
+
+\textbf{Parametry:} \texttt{REDISTp} -- prawdopodobieństwo zastosowania;
+\texttt{REDIST\_TRIES} -- liczba losowanych par dawca--klient.
+
+\paragraph{Kolejność stosowania.}
+Operatory stosowane są sekwencyjnie po mutacji standardowej:
+RedistributeLocations $\to$ Repair $\to$ OptimizeTracks.
+Kolejność ma znaczenie: redistribucja zmienia strukturę tras, naprawa eliminuje
+naruszenia w nowych trasach, optymalizacja dopracowuje kolejność po naprawie.
+
+% =============================================================================
 \section{Pliki wejściowe}
 
-Wykorzystano instancje z zestawu benchmarkowego Solomona (100 klientów):
-\begin{itemize}
-    \item \textbf{C101} -- klienci rozmieszczeni w klastrach, wąskie okna czasowe.
-    \item \textbf{R101} -- klienci rozmieszczeni losowo, szerokie okna.
-    \item \textbf{RC101} -- klienci częściowo w klastrach, częściowo losowo.
-\end{itemize}
+Eksperymenty przeprowadzono na instancjach z zestawu benchmarkowego Solomona
+(100 klientów). Zestaw Solomona dzieli się na 6 rodzin w zależności od rozmieszczenia
+klientów i charakteru okien czasowych:
 
-Znane najlepsze rozwiązania (BKS):
 \begin{center}
-\begin{tabular}{lr}
+\begin{tabular}{lll}
 \toprule
-Instancja & BKS \\
+Rodzina & Rozmieszczenie klientów & Okna czasowe \\
 \midrule
-C101  & 827{,}3 \\
-R101  & 1650{,}8 \\
-RC101 & 1696{,}94 \\
+C1 & klastrowe  & wąskie \\
+C2 & klastrowe  & szerokie \\
+R1 & losowe     & wąskie \\
+R2 & losowe     & szerokie \\
+RC1 & mieszane  & wąskie \\
+RC2 & mieszane  & szerokie \\
 \bottomrule
 \end{tabular}
 \end{center}
 
-% ─────────────────────────────────────────────────────────────────────────────
+Do strojenia parametrów użyto 3 instancji (po jednej z C1, R1, RC1):
+\textbf{C101}, \textbf{R101}, \textbf{RC101}.
+
+Do porównania końcowego użyto 12 instancji -- po dwie z każdej rodziny:
+C101, C102, C201, C202, R101, R102, R201, R202, RC101, RC102, RC201, RC202.
+
+% =============================================================================
 \section{Procedura badawcza}
+
+\subsection{Strojenie parametrów}
+
+Strojenie przeprowadzono metodą \textbf{jednowymiarowej analizy wrażliwości}
+(\textit{one-factor-at-a-time}): w każdej fazie zmieniany jest jeden parametr,
+pozostałe utrzymywane na wartości wybranej w poprzedniej fazie (tzw. \textit{sequential tuning}).
+
+Kryterium zatrzymania podczas strojenia: stały budżet $B = 300\,000$ wywołań
+funkcji celu. Każda konfiguracja testowana $N=5$ razy niezależnie.
+Miara jakości: średnia wartość funkcji celu z ostatniej generacji.
+
+Przeprowadzono \textbf{dwa niezależne potoki strojenia}:
 \begin{itemize}
-    \item Budżet strojenia: $B = 10\,000$ wywołań funkcji celu dla wszystkich konfiguracji.
-    \item Budżet porównania końcowego: $B = 200\,000$.
-    \item Liczba powtórzeń: $N = 5$ niezależnych uruchomień.
-    \item Miara jakości: \textbf{średnia} (avg) wyników z $N$ powtórzeń.
-    \item Parametry bazowe: \texttt{popSize=50}, \texttt{Xp=75}, \texttt{Mp=25},
-          \texttt{turSize=2}, \texttt{elitesNum=1}, krzyżowanie OX, mutacja SWAP.
-    \item Operatory niestandardowe (wariant ON): \texttt{REPAIRp=70}, \texttt{OPTp=30}, \texttt{REDISTp=80}.
+    \item \textbf{ops\_on}: EA z włączonymi operatorami niestandardowymi -- 8 faz.
+    \item \textbf{ops\_off}: EA bazowy bez operatorów niestandardowych -- 5 faz.
 \end{itemize}
 
-% ─────────────────────────────────────────────────────────────────────────────
-\section{Strojenie parametrów}
-\label{sec:tuning}
+Niezależne potoki zapewniają \textit{fair comparison}: każdy wariant dobiera
+swoje optymalne parametry, a nie tylko parametry dopasowane do drugiego.
 
-Strojenie przeprowadzono iteracyjnie. W każdej fazie zmieniany był jeden parametr,
-pozostałe utrzymywane na wartościach bazowych. Budżet $B = 10\,000$ dla wszystkich konfiguracji.
+\subsection{Porównanie końcowe}
 
-\subsection{Faza 1: operatory niestandardowe (ON vs OFF)}
+Porównanie przeprowadzono na 12 instancjach Solomona, $N=5$ niezależnych
+uruchomień każdej konfiguracji, z kryterium zatrzymania opartym na stagnacji:
+algorytm zatrzymuje się, gdy przez 10\,000 kolejnych pokoleń nie nastąpiła
+poprawa najlepszego rozwiązania (twardy limit: 1\,000\,000 wywołań funkcji celu).
 
-Przetestowano dwie konfiguracje: bez operatorów niestandardowych (tylko EA bazowy)
-oraz z operatorami Repair + OptimizeTracks + RedistributeLocations.
+\subsection{Środowisko obliczeniowe}
+
+Implementacja w C++17, skompilowana z flagami \texttt{-O3 -march=native -flto
+-ffast-math}. Uruchomienia równoległe z użyciem \texttt{std::async} --
+w porównaniu końcowym 60 wątków jednocześnie (12 instancji $\times$ 5 uruchomień).
+Generator losowy: \texttt{thread\_local std::mt19937} (niezależny dla każdego wątku).
+
+% =============================================================================
+\section{Strojenie parametrów -- potok ops\_on}
+\label{sec:tuning_on}
+
+\subsection{Faza 1: rozmiar populacji}
 
 \begin{table}[H]
 \centering
-\caption{Faza 1 -- wpływ operatorów niestandardowych (avg z 5 uruchomień, $B=10\,000$)}
-\begin{tabular}{lrrrrrr}
+\caption{Faza 1 (ops\_on) -- strojenie \texttt{popSize} ($B=300\,000$, $N=5$)}
+\begin{tabular}{lrrrr}
 \toprule
-Wariant & C101 avg & C101 best & R101 avg & R101 best & RC101 avg & RC101 best \\
+\texttt{popSize} & C101 & R101 & RC101 & OVERALL \\
 \midrule
-Bez operatorów & 3073{,}7 & 2880{,}4 & 2553{,}2 & 2277{,}9 & 3125{,}8 & 3018{,}9 \\
-Z operatorami  & \textbf{2263{,}5} & \textbf{2083{,}7} & \textbf{1826{,}2} & \textbf{1715{,}3} & \textbf{2337{,}5} & \textbf{2196{,}7} \\
+10  & 1642 & 1425 & 1772 & 1613 \\
+20  & 1707 & 1401 & 1663 & 1591 \\
+\textbf{50}  & \textbf{1515} & \textbf{1341} & \textbf{1620} & \textbf{1492} \\
+100 & 1652 & 1443 & 1769 & 1622 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.7\textwidth]{out/plots/phase1_operators.png}
-    \caption{Faza 1: porównanie kosztu z operatorami i bez -- procentowa poprawa zaznaczona nad słupkami.}
+    \includegraphics[width=0.85\textwidth]{out/plots/on_phase1_pop.png}
+    \caption{Faza 1 (ops\_on): wpływ rozmiaru populacji na średni koszt finalny.}
 \end{figure}
 
-\textbf{Wnioski:} Operatory niestandardowe poprawiły wyniki we wszystkich trzech instancjach:
-o \textbf{26\%} dla C101, o \textbf{28\%} dla R101 i o \textbf{25\%} dla RC101.
-Poprawa wynika z faktu, że EA bazowy operuje tylko na globalnej permutacji i rzadko trafia na
-rozwiązania sensowne trasowo. Operator Repair naprawia naruszenia okien, OptimizeTracks
-lokalizuje optymalną kolejność w obrębie trasy, a RedistributeLocations przenosi klientów
-między trasami -- trzy uzupełniające się mechanizmy poprawy.
+\textbf{Wnioski:} Populacja 50 wygrała we wszystkich instancjach.
+Mała populacja (10, 20) oznacza mało pokoleń przy stałym budżecie --
+operatory niestandardowe nie mają czasu na dopracowanie tras.
+Zbyt duża (100) spowalnia konwergencję. Przyjęto \texttt{popSize=50}.
 
-\subsection{Faza 2: rozmiar populacji}
-
-Przetestowano wartości: 10, 20, 50, 100. Operatory niestandardowe włączone.
+\subsection{Faza 2: operator krzyżowania}
 
 \begin{table}[H]
 \centering
-\caption{Faza 2 -- strojenie \texttt{popSize} (avg z 5 uruchomień)}
-\begin{tabular}{lrrr}
+\caption{Faza 2 (ops\_on) -- typ krzyżowania ($N=5$)}
+\begin{tabular}{lrrrr}
 \toprule
-\texttt{popSize} (loops) & C101 & R101 & RC101 \\
+Operator & C101 & R101 & RC101 & OVERALL \\
 \midrule
-10  (1000) & 2325 & 1889 & 2358 \\
-20  (500)  & 2248 & 1848 & 2268 \\
-\textbf{50  (200)}  & \textbf{2327} & \textbf{1832} & \textbf{2191} \\
-100 (100)  & 2511 & 1990 & 2508 \\
+\textbf{OX}  & \textbf{1634} & \textbf{1392} & \textbf{1600} & \textbf{1542} \\
+PMX & 1723 & 1496 & 1737 & 1652 \\
+CX  & 2017 & 1728 & 2088 & 1944 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.7\textwidth]{out/plots/phase2_popsize.png}
-    \caption{Faza 2: wpływ rozmiaru populacji na jakość rozwiązania.}
+    \includegraphics[width=0.85\textwidth]{out/plots/on_phase2_cross.png}
+    \caption{Faza 2 (ops\_on): porównanie operatorów krzyżowania.}
 \end{figure}
 
-\textbf{Wnioski:} Wynik zależy od instancji -- dla C101 najlepsza była populacja 20,
-dla R101 i RC101 -- 50. Populacja 100 wypadła najgorzej we wszystkich przypadkach:
-przy budżecie $B=10\,000$ i \texttt{popSize=100} algorytm wykonywał tylko 100 pokoleń,
-co jest zbyt małą liczbą iteracji dla operatorów niestandardowych, które wymagają
-dłuższej ewolucji. Na potrzeby dalszego strojenia przyjęto \texttt{popSize=50}.
+\textbf{Wnioski:} OX wygrał wyraźnie. CX wypadł najgorzej -- operator cykliczny
+zachowuje pozycje absolutne, co przy problemach permutacyjnych z ważną kolejnością
+względną jest niekorzystne. OX zachowuje kolejność względną klientów z jednego
+rodzica, co jest semantycznie spójne z kodowaniem tras. Przyjęto \texttt{OX}.
 
 \subsection{Faza 3: prawdopodobieństwo krzyżowania (\texttt{Xp})}
 
-Przetestowano wartości: 50, 75, 90.
-
 \begin{table}[H]
 \centering
-\caption{Faza 3 -- strojenie \texttt{Xp} (avg z 5 uruchomień)}
-\begin{tabular}{lrrr}
+\caption{Faza 3 (ops\_on) -- strojenie \texttt{Xp} ($N=5$)}
+\begin{tabular}{lrrrr}
 \toprule
-\texttt{Xp} & C101 & R101 & RC101 \\
+\texttt{Xp} & C101 & R101 & RC101 & OVERALL \\
 \midrule
-50 & 2383 & 1911 & 2339 \\
-\textbf{75} & \textbf{2352} & \textbf{1913} & 2435 \\
-90 & 2464 & 1954 & 2426 \\
+50\% & 1734 & 1469 & 1783 & 1662 \\
+\textbf{75\%} & \textbf{1576} & \textbf{1351} & \textbf{1626} & \textbf{1518} \\
+90\% & 1586 & 1396 & 1703 & 1562 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.7\textwidth]{out/plots/phase3_xp.png}
-    \caption{Faza 3: wpływ prawdopodobieństwa krzyżowania.}
+    \includegraphics[width=0.85\textwidth]{out/plots/on_phase3_xp.png}
+    \caption{Faza 3 (ops\_on): wpływ prawdopodobieństwa krzyżowania.}
 \end{figure}
 
-\textbf{Wnioski:} Różnice między wartościami \texttt{Xp} były niewielkie przy $N=5$.
-Wartość \texttt{Xp=75} wygrała dla C101 i R101; dla RC101 najlepsza była wartość 50.
-Zbyt wysokie \texttt{Xp} (90) pogarsza wyniki -- przy każdym kroku ewolucja generuje
-dziecko przez krzyżowanie permutacji, co może niszczyć dopracowane trasy.
-Przyjęto \texttt{Xp=75}.
+\textbf{Wnioski:} \texttt{Xp=75\%} daje najlepsze wyniki. Zbyt rzadkie krzyżowanie
+(50\%) ogranicza rekombinację -- algorytm zachowuje się zbyt podobnie do
+prostej mutacji. Zbyt częste (90\%) niszczy dopracowane trasy szybciej, niż
+operatory naprawcze zdążają je odbudować. Przyjęto \texttt{Xp=75}.
 
 \subsection{Faza 4: prawdopodobieństwo mutacji (\texttt{Mp})}
 
-Przetestowano wartości: 10, 25, 40.
-
 \begin{table}[H]
 \centering
-\caption{Faza 4 -- strojenie \texttt{Mp} (avg z 5 uruchomień)}
-\begin{tabular}{lrrr}
+\caption{Faza 4 (ops\_on) -- strojenie \texttt{Mp} ($N=5$)}
+\begin{tabular}{lrrrr}
 \toprule
-\texttt{Mp} & C101 & R101 & RC101 \\
+\texttt{Mp} & C101 & R101 & RC101 & OVERALL \\
 \midrule
-10 & 2468 & 1947 & 2507 \\
-\textbf{25} & \textbf{2400} & \textbf{1868} & \textbf{2305} \\
-40 & 2506 & 2072 & 2507 \\
+10\% & 2084 & 1677 & 2103 & 1954 \\
+\textbf{25\%} & \textbf{1561} & \textbf{1362} & \textbf{1629} & \textbf{1517} \\
+40\% & 2006 & 1659 & 2002 & 1889 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.7\textwidth]{out/plots/phase4_mp.png}
-    \caption{Faza 4: wpływ prawdopodobieństwa mutacji.}
+    \includegraphics[width=0.85\textwidth]{out/plots/on_phase4_mp.png}
+    \caption{Faza 4 (ops\_on): wpływ prawdopodobieństwa mutacji.}
 \end{figure}
 
-\textbf{Wnioski:} \texttt{Mp=25} wygrało we wszystkich trzech instancjach.
-Niska mutacja (Mp=10) powoduje zbyt szybką zbieżność populacji;
-zbyt wysoka (Mp=40) zaburza rozwiązania szybciej niż operatory niestandardowe
-zdążają je naprawić. Przyjęto \texttt{Mp=25}.
+\textbf{Wnioski:} \texttt{Mp=25\%} wygrało we wszystkich instancjach z dużym marginesem.
+Niska mutacja (10\%) powoduje zbyt szybką utratę różnorodności populacji.
+Wysoka (40\%) losowo niszczy strukturę tras -- operator Repair i OptimizeTracks
+muszą naprawiać nie tylko błędy wynikające z krzyżowania, ale też ze zbyt
+agresywnej mutacji, co przekracza ich możliwości w dostępnym budżecie. Przyjęto \texttt{Mp=25}.
 
-\subsection{Podsumowanie strojeń}
+\subsection{Faza 5: rozmiar turnieju (\texttt{turSize})}
 
 \begin{table}[H]
 \centering
-\caption{Przyjęte parametry po strojeniu}
+\caption{Faza 5 (ops\_on) -- strojenie \texttt{turSize} ($N=5$)}
+\begin{tabular}{lrrrr}
+\toprule
+\texttt{turSize} & C101 & R101 & RC101 & OVERALL \\
+\midrule
+\textbf{2} & \textbf{1593} & \textbf{1357} & \textbf{1637} & \textbf{1529} \\
+3 & 2043 & 1722 & 1995 & 1920 \\
+5 & 2335 & 1825 & 2309 & 2157 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\textwidth]{out/plots/on_phase5_tur.png}
+    \caption{Faza 5 (ops\_on): wpływ rozmiaru turnieju.}
+\end{figure}
+
+\textbf{Wnioski:} Mały turniej ($k=2$) wygrał wyraźnie. Duży turniej ($k=5$)
+powoduje zbyt dużą presję selekcyjną -- populacja szybko ulega homogenizacji
+wokół lokalnego optimum, a operatory niestandardowe nie mogą wygenerować
+dostatecznie różnorodnych rozwiązań startowych. Przyjęto \texttt{turSize=2}.
+
+\subsection{Faza 6: prawdopodobieństwo Repair (\texttt{REPAIRp})}
+
+\begin{table}[H]
+\centering
+\caption{Faza 6 (ops\_on) -- strojenie \texttt{REPAIRp} ($N=5$)}
+\begin{tabular}{lrrrr}
+\toprule
+\texttt{REPAIRp} & C101 & R101 & RC101 & OVERALL \\
+\midrule
+\textbf{30\%} & \textbf{1583} & 1411 & \textbf{1622} & \textbf{1539} \\
+70\%          & 1680          & 1420 & 1609          & 1570 \\
+100\%         & 1663          & \textbf{1353} & 1680 & 1565 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\textwidth]{out/plots/on_phase6_repair.png}
+    \caption{Faza 6 (ops\_on): wpływ prawdopodobieństwa operatora Repair.}
+\end{figure}
+
+\textbf{Wnioski:} Niższe REPAIRp (30\%) okazuje się lepsze -- operator Repair
+jest kosztowny obliczeniowo (skanuje cały genom); zbyt częste jego stosowanie
+zmniejsza liczbę pokoleń w budżecie. Przyjęto \texttt{REPAIRp=30}.
+
+\subsection{Faza 7: prawdopodobieństwo OptimizeTracks (\texttt{OPTp})}
+
+\begin{table}[H]
+\centering
+\caption{Faza 7 (ops\_on) -- strojenie \texttt{OPTp} ($N=5$)}
+\begin{tabular}{lrrrr}
+\toprule
+\texttt{OPTp} & C101 & R101 & RC101 & OVERALL \\
+\midrule
+\textbf{10\%} & \textbf{1614} & \textbf{1401} & \textbf{1631} & \textbf{1548} \\
+30\% & 1586 & 1390 & 1719 & 1565 \\
+60\% & 1623 & 1393 & 1675 & 1563 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\textwidth]{out/plots/on_phase7_opt.png}
+    \caption{Faza 7 (ops\_on): wpływ prawdopodobieństwa operatora OptimizeTracks.}
+\end{figure}
+
+\textbf{Wnioski:} Wyniki faz 6 i 7 są zbliżone -- różnice mieszczą się w granicach
+zmienności statystycznej przy $N=5$. OPT=10\% wygrało globalnie;
+podobnie jak Repair, zbyt częste stosowanie OptimizeTracks kosztuje pokolenia.
+Przyjęto \texttt{OPTp=10}.
+
+\subsection{Faza 8: prawdopodobieństwo RedistributeLocations (\texttt{REDISTp})}
+
+\begin{table}[H]
+\centering
+\caption{Faza 8 (ops\_on) -- strojenie \texttt{REDISTp} ($N=5$)}
+\begin{tabular}{lrrrr}
+\toprule
+\texttt{REDISTp} & C101 & R101 & RC101 & OVERALL \\
+\midrule
+30\%           & 1594          & 1391          & 1685 & 1557 \\
+80\%           & 1652          & \textbf{1351} & 1711 & 1572 \\
+\textbf{100\%} & \textbf{1607} & 1409          & \textbf{1644} & \textbf{1553} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\textwidth]{out/plots/on_phase8_redist.png}
+    \caption{Faza 8 (ops\_on): wpływ prawdopodobieństwa operatora RedistributeLocations.}
+\end{figure}
+
+\textbf{Wnioski:} REDISTp=100\% wygrało ogólnie -- RedistributeLocations jest
+lżejszy obliczeniowo niż Repair/OPT, więc stosowanie go przy każdej mutacji
+nie nadmiernie obciąża budżetu. Przyjęto \texttt{REDISTp=100}.
+
+\subsection{Najlepsze parametry -- potok ops\_on}
+
+\begin{table}[H]
+\centering
+\caption{Optymalne parametry EA z operatorami niestandardowymi}
 \begin{tabular}{lc}
 \toprule
 Parametr & Wartość \\
 \midrule
-\texttt{popSize}  & 50 \\
-\texttt{Xp}       & 75\% \\
-\texttt{Mp}       & 25\% \\
-\texttt{turSize}  & 2 \\
+\texttt{popSize}   & 50 \\
+Krzyżowanie        & OX \\
+\texttt{Xp}        & 75\% \\
+\texttt{Mp}        & 25\% \\
+\texttt{turSize}   & 2 \\
 \texttt{elitesNum} & 1 \\
-Krzyżowanie       & OX \\
-Mutacja           & SWAP \\
-\texttt{REPAIRp}  & 70\% \\
-\texttt{OPTp}     & 30\% \\
-\texttt{REDISTp}  & 80\% \\
+\texttt{REPAIRp}   & 30\% \\
+\texttt{OPTp}      & 10\% \\
+\texttt{REDISTp}   & 100\% \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-% ─────────────────────────────────────────────────────────────────────────────
-\section{Porównanie końcowe: EA z operatorami vs bez}
-\label{sec:final}
+% =============================================================================
+\section{Strojenie parametrów -- potok ops\_off}
+\label{sec:tuning_off}
 
-Porównanie przeprowadzono z parametrami bazowymi na pełnym budżecie $B = 200\,000$,
-$N = 5$ niezależnych uruchomień.
+Potok ops\_off stroi parametry EA bazowego (bez operatorów niestandardowych)
+w 5 fazach. Każda faza startuje od wartości wybranej w poprzedniej fazie.
+
+\subsection{Faza 1: rozmiar populacji}
 
 \begin{table}[H]
 \centering
-\caption{Porównanie końcowe -- wyniki z 5 uruchomień ($B = 200\,000$)}
-\begin{tabular}{lrrrrrr}
+\caption{Faza 1 (ops\_off) -- strojenie \texttt{popSize} ($B=300\,000$, $N=5$)}
+\begin{tabular}{lrrrr}
 \toprule
- & \multicolumn{3}{c}{Bez operatorów} & \multicolumn{3}{c}{Z operatorami} \\
-\cmidrule(lr){2-4} \cmidrule(lr){5-7}
-Instancja & avg & best & std & avg & best & std \\
+\texttt{popSize} & C101 & R101 & RC101 & OVERALL \\
 \midrule
-C101  & 1822{,}9 & 1725{,}2 & 63{,}8  & \textbf{1594{,}0} & \textbf{1467{,}4} & 77{,}0 \\
-R101  & 1476{,}3 & 1389{,}2 & 81{,}2  & \textbf{1418{,}5} & \textbf{1341{,}9} & 72{,}7 \\
-RC101 & 1888{,}0 & 1805{,}2 & 103{,}0 & \textbf{1688{,}0} & \textbf{1606{,}4} & 50{,}2 \\
+10  & 1964 & 1624 & 1976 & 1855 \\
+20  & 1700 & 1464 & 1896 & 1687 \\
+\textbf{50}  & \textbf{1635} & \textbf{1443} & \textbf{1695} & \textbf{1591} \\
+100 & 1864 & 1545 & 1933 & 1780 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\textbf{Odchylenie od BKS:}
-\begin{center}
-\begin{tabular}{lrr}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\textwidth]{out/plots/off_phase1_pop.png}
+    \caption{Faza 1 (ops\_off): wpływ rozmiaru populacji.}
+\end{figure}
+
+\subsection{Faza 2: operator krzyżowania}
+
+\begin{table}[H]
+\centering
+\caption{Faza 2 (ops\_off) -- typ krzyżowania ($N=5$)}
+\begin{tabular}{lrrrr}
 \toprule
-Instancja & Bez operatorów (gap) & Z operatorami (gap) \\
+Operator & C101 & R101 & RC101 & OVERALL \\
 \midrule
-C101  & $+120{,}3\%$ & $+92{,}7\%$ \\
-R101  & $-10{,}6\%$  & $-14{,}1\%$ \\
-RC101 & $+11{,}3\%$  & $-0{,}5\%$ \\
+\textbf{OX}  & \textbf{1709} & \textbf{1399} & \textbf{1754} & \textbf{1621} \\
+PMX & 2002 & 1624 & 2060 & 1895 \\
+CX  & 2297 & 1866 & 2393 & 2185 \\
 \bottomrule
 \end{tabular}
-\end{center}
+\end{table}
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.7\textwidth]{out/plots/phase5_bar.png}
-    \caption{Porównanie końcowe: avg koszt z operatorami i bez.}
+    \includegraphics[width=0.85\textwidth]{out/plots/off_phase2_cross.png}
+    \caption{Faza 2 (ops\_off): porównanie operatorów krzyżowania.}
 \end{figure}
 
-\subsection{Wykresy przebiegu EA}
+\subsection{Faza 3: prawdopodobieństwo krzyżowania}
+
+\begin{table}[H]
+\centering
+\caption{Faza 3 (ops\_off) -- strojenie \texttt{Xp} ($N=5$)}
+\begin{tabular}{lrrrr}
+\toprule
+\texttt{Xp} & C101 & R101 & RC101 & OVERALL \\
+\midrule
+50\% & 2012 & 1592 & 2051 & 1885 \\
+\textbf{75\%} & \textbf{1673} & \textbf{1412} & \textbf{1796} & \textbf{1627} \\
+90\% & 1878 & 1497 & 1920 & 1765 \\
+\bottomrule
+\end{tabular}
+\end{table}
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.9\textwidth]{out/plots/phase5_c101.png}
-    \caption{Przebieg EA dla instancji C101 ($B=200\,000$, $N=5$ uśrednione).}
+    \includegraphics[width=0.85\textwidth]{out/plots/off_phase3_xp.png}
+    \caption{Faza 3 (ops\_off): wpływ prawdopodobieństwa krzyżowania.}
+\end{figure}
+
+\subsection{Faza 4: prawdopodobieństwo mutacji}
+
+\begin{table}[H]
+\centering
+\caption{Faza 4 (ops\_off) -- strojenie \texttt{Mp} ($N=5$)}
+\begin{tabular}{lrrrr}
+\toprule
+\texttt{Mp} & C101 & R101 & RC101 & OVERALL \\
+\midrule
+10\% & 2522 & 2047 & 2621 & 2397 \\
+\textbf{25\%} & \textbf{1656} & \textbf{1429} & \textbf{1723} & \textbf{1603} \\
+40\% & 2670 & 2184 & 2773 & 2542 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\textwidth]{out/plots/off_phase4_mp.png}
+    \caption{Faza 4 (ops\_off): wpływ prawdopodobieństwa mutacji.}
+\end{figure}
+
+\textbf{Wnioski:} W wariancie bez operatorów niestandardowych wrażliwość na
+\texttt{Mp} jest znacznie większa -- wynik przy Mp=10\% i Mp=40\% jest
+dramatycznie gorszy niż przy 25\%. Bez mechanizmów naprawczych zbyt mała
+mutacja powoduje utknięcie, a zbyt duża niszczy rozwiązania nieodwracalnie.
+
+\subsection{Faza 5: rozmiar turnieju}
+
+\begin{table}[H]
+\centering
+\caption{Faza 5 (ops\_off) -- strojenie \texttt{turSize} ($N=5$)}
+\begin{tabular}{lrrrr}
+\toprule
+\texttt{turSize} & C101 & R101 & RC101 & OVERALL \\
+\midrule
+\textbf{2} & \textbf{1655} & \textbf{1451} & \textbf{1738} & \textbf{1615} \\
+3 & 2630 & 2112 & 2730 & 2491 \\
+5 & 3419 & 2752 & 3560 & 3244 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\textwidth]{out/plots/off_phase5_tur.png}
+    \caption{Faza 5 (ops\_off): wpływ rozmiaru turnieju.}
+\end{figure}
+
+\textbf{Wnioski:} Rozmiar turnieju ma w wariancie bez operatorów
+efekt katastrofalny przy $k>2$. Duża presja selekcyjna bez mechanizmów
+naprawczych prowadzi do szybkiej degeneracji populacji.
+
+\subsection{Najlepsze parametry -- potok ops\_off}
+
+\begin{table}[H]
+\centering
+\caption{Optymalne parametry EA bazowego (bez operatorów niestandardowych)}
+\begin{tabular}{lc}
+\toprule
+Parametr & Wartość \\
+\midrule
+\texttt{popSize}   & 50 \\
+Krzyżowanie        & OX \\
+\texttt{Xp}        & 75\% \\
+\texttt{Mp}        & 25\% \\
+\texttt{turSize}   & 2 \\
+\texttt{elitesNum} & 1 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Oba potoki niezależnie wybrały identyczne parametry bazowe,
+co potwierdza ich robustność i wskazuje, że wybory te nie są
+artefaktem obecności lub braku operatorów niestandardowych.
+
+% =============================================================================
+\section{Porównanie końcowe}
+\label{sec:final}
+
+Porównanie przeprowadzono z optymalnymi konfiguracjami obu potoków na 12
+instancjach Solomona. Kryterium zatrzymania: brak poprawy przez 10\,000
+kolejnych pokoleń lub limit 1\,000\,000 wywołań funkcji celu.
+$N=5$ niezależnych uruchomień na instancję.
+
+\begin{table}[H]
+\centering
+\caption{Wyniki porównania końcowego -- średni koszt z 5 uruchomień}
+\begin{tabular}{lrrl}
+\toprule
+Instancja & ops\_on & ops\_off & Zwycięzca \\
+\midrule
+C101  & 1414 & \textbf{1360} & ops\_off ($-3{,}8\%$) \\
+C102  & 1417 & \textbf{1303} & ops\_off ($-8{,}0\%$) \\
+C201  & \textbf{962}  & 1148 & ops\_on ($-16{,}2\%$) \\
+C202  & \textbf{1189} & 1191 & ops\_on ($-0{,}2\%$) \\
+R101  & \textbf{1256} & 1265 & ops\_on ($-0{,}7\%$) \\
+R102  & 1234 & \textbf{1204} & ops\_off ($-2{,}4\%$) \\
+R201  & \textbf{1188} & 1200 & ops\_on ($-1{,}0\%$) \\
+R202  & 1181 & \textbf{1143} & ops\_off ($-3{,}2\%$) \\
+RC101 & 1543 & \textbf{1487} & ops\_off ($-3{,}6\%$) \\
+RC102 & \textbf{1522} & 1561 & ops\_on ($-2{,}5\%$) \\
+RC201 & 1418 & \textbf{1367} & ops\_off ($-3{,}6\%$) \\
+RC202 & 1304 & \textbf{1298} & ops\_off ($-0{,}5\%$) \\
+\midrule
+\textbf{OVERALL} & 1302 & \textbf{1294} & \textbf{ops\_off ($-0{,}7\%$)} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{out/plots/compare_bar.png}
+    \caption{Porównanie końcowe: ops\_on vs ops\_off dla 12 instancji Solomona.
+             Liczby między słupkami pokazują bezwzględną różnicę kosztów.}
 \end{figure}
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.9\textwidth]{out/plots/phase5_r101.png}
-    \caption{Przebieg EA dla instancji R101 ($B=200\,000$, $N=5$ uśrednione).}
+    \includegraphics[width=0.85\textwidth]{out/plots/compare_by_family.png}
+    \caption{Porównanie końcowe pogrupowane wg rodziny instancji.
+             Procenty pokazują względną różnicę ops\_on względem ops\_off.}
+\end{figure}
+
+\subsection{Przebiegi algorytmu}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{out/plots/compare_conv_c101.png}
+    \caption{Przebieg EA dla instancji C101 -- uśredniony przebieg 5 uruchomień.}
 \end{figure}
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.9\textwidth]{out/plots/phase5_rc101.png}
-    \caption{Przebieg EA dla instancji RC101 ($B=200\,000$, $N=5$ uśrednione).}
+    \includegraphics[width=0.95\textwidth]{out/plots/compare_conv_r101.png}
+    \caption{Przebieg EA dla instancji R101.}
 \end{figure}
 
-% ─────────────────────────────────────────────────────────────────────────────
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{out/plots/compare_conv_rc101.png}
+    \caption{Przebieg EA dla instancji RC101.}
+\end{figure}
+
+% =============================================================================
 \section{Analiza wyników i wnioski}
 \label{sec:conclusions}
 
 \subsection{Wpływ operatorów niestandardowych}
 
-Operatory niestandardowe konsekwentnie poprawiały wyniki we wszystkich instancjach
-i przy obu budżetach. Największy efekt zaobserwowano dla C101 (klastry):
-operatory umożliwiły podział klientów w klastrach na wydajne trasy.
-Dla R101 (losowy) poprawa była mniejsza -- losowe rozmieszczenie klientów utrudnia
-lokalną optymalizację tras.
+Ogólnie EA bazowy (ops\_off) osiągnął nieznacznie lepszy wynik niż EA z operatorami
+(ops\_on): średni koszt 1294 vs 1302 (różnica 0{,}7\%). Wynik ten mieści się jednak
+w granicach zmienności statystycznej przy $N=5$ -- w poprzednim uruchomieniu
+(identyczna konfiguracja) ops\_on wygrał z podobną przewagą. Oba warianty są
+praktycznie równoważne globalnie, jednak wyraźnie różnią się zależnie od rodziny instancji:
 
-Wariant z operatorami osiągnął wynik bliski BKS dla RC101 (gap $= -0{,}5\%$,
-tj.\ nieznacznie poniżej wartości tabelarycznej, co może wynikać z zastosowanej
-penalizacji zamiast twardych ograniczeń). Dla C101 duży gap ($92{,}7\%$) wskazuje,
-że instancje klastrowe wymagają większego budżetu lub dedykowanych metod inicjalizacji.
+\begin{itemize}
+    \item \textbf{C1 (clustered, wąskie TW):} ops\_off wygrywa na obu instancjach
+          o 4--8\%. Klastry klientów z wąskimi oknami tworzą naturalne trasy,
+          które EA bazowy odkrywa przez krzyżowanie OX (zachowujące kolejność względną).
+          Operatory niestandardowe, zwłaszcza RedistributeLocations, mogą rozbijać
+          te naturalne klastry, a Repair zamiast je naprawiać -- niszczy ich strukturę.
+    \item \textbf{C2 (clustered, szerokie TW):} ops\_on wygrywa wyraźnie -- C201 o ponad
+          16\%. Szerokie okna dają operatorom swobodę działania -- Repair rzadziej
+          zaburza trasę, a OptimizeTracks może efektywnie dopracować kolejność w klastrze.
+    \item \textbf{R1/R2 (random):} różnice są minimalne (poniżej 3\%), wyniki
+          przeplatają się -- żadna metoda nie dominuje. Losowe rozmieszczenie klientów
+          nie preferuje żadnego ze stylów optymalizacji.
+    \item \textbf{RC1/RC2 (mixed):} wyniki mieszane -- ops\_off wygrywa RC101 i RC201,
+          ops\_on wygrywa RC102. Mieszane instancje nie faworyzują jednoznacznie
+          żadnego podejścia.
+\end{itemize}
 
 \subsection{Kluczowe obserwacje}
 
 \begin{enumerate}
-    \item \textbf{Operatory niestandardowe mają decydujący wpływ} -- poprawa
-          $25$--$28\%$ już przy małym budżecie strojenia, $4$--$13\%$ przy
-          pełnym budżecie. Są ważniejsze niż dobór \texttt{Xp} czy \texttt{Mp}.
-    \item \textbf{Zbyt duża populacja szkodzi} -- przy stałym budżecie więcej
-          osobników oznacza mniej pokoleń; operatory niestandardowe potrzebują
-          iteracji, żeby efektywnie poprawiać trasy.
-    \item \textbf{Wariant z operatorami jest bardziej stabilny} -- niższe
-          odchylenie standardowe (RC101: std=50 z operatorami vs 103 bez).
-          Operatory pełnią rolę lokalnego naprawiacza, zmniejszając zmienność losową.
-    \item \textbf{Strojenie parametrów \texttt{Xp} i \texttt{Mp} przyniosło
-          marginalną poprawę} -- przy $N=5$ różnice są w granicach szumu
-          statystycznego. Ważniejszy jest sam fakt włączenia operatorów
-          niestandardowych.
+    \item \textbf{Rodzina instancji determinuje przydatność operatorów.}
+          Nie ma jednej metody dominującej we wszystkich typach. Różnica globalna
+          (0{,}7\%) jest w granicach szumu statystycznego -- w zależności od losowości
+          uruchomienia wygrać może każdy z wariantów. Natomiast na poziomie rodziny
+          instancji wzorce są powtarzalne: ops\_off wygrywa C1, ops\_on wygrywa C2.
+          Typ instancji powinien informować wybór metody.
+    \item \textbf{Parametry EA są niemal identyczne w obu potokach.}
+          popSize=50, OX, Xp=75\%, Mp=25\%, turSize=2 okazały się optymalne
+          niezależnie od obecności operatorów niestandardowych.
+          Wskazuje to na robustność tych wyborów dla CVRPTW.
+    \item \textbf{Wrażliwość na turSize jest dramatycznie większa bez operatorów.}
+          Przy ops\_off turSize=3 daje wynik o 54\% gorszy od turSize=2,
+          podczas gdy przy ops\_on ta różnica wynosi 25\%.
+          Operatory niestandardowe pełnią rolę bufora zabezpieczającego
+          przed degeneracją populacji przy dużej presji selekcyjnej.
+    \item \textbf{Operatory niestandardowe preferują niskie prawdopodobieństwa.}
+          Optymalne wartości to REPAIRp=30\%, OPTp=10\%, REDISTp=100\%.
+          Dwa pierwsze operatory są kosztowne obliczeniowo -- zbyt częste
+          stosowanie konsumuje budżet bez proporcjonalnej poprawy jakości.
+          RedistributeLocations jest lżejszy i można go stosować zawsze.
+    \item \textbf{Przebiegi zbieżności pokazują różnicę w charakterze eksploracji.}
+          ops\_on zbiega szybciej w pierwszych generacjach (operatory natychmiast
+          naprawiają błędy), ale ops\_off może dogonić przy długim horyzoncie --
+          szczególnie widoczne dla C101 i R101.
 \end{enumerate}
+
+\subsection{Ograniczenia badania}
+
+\begin{itemize}
+    \item Zastosowana penalizacja (współczynnik 0{,}01 za spóźnienie) oznacza,
+          że uzyskane rozwiązania mogą naruszać okna czasowe. Podane koszty
+          nie są bezpośrednio porównywalne z BKS, które wymagają pełnej
+          dopuszczalności.
+    \item Liczba powtórzeń $N=5$ daje ograniczoną moc statystyczną -- różnice
+          poniżej 2\% mogą nie być istotne statystycznie.
+    \item Strojenie metodą one-factor-at-a-time nie gwarantuje globalnego optimum
+          w przestrzeni parametrów -- interakcje między parametrami nie są badane.
+\end{itemize}
 
 \end{document}
