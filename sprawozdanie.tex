@@ -746,8 +746,14 @@ praktycznie równoważne globalnie, jednak wyraźnie różnią się zależnie od
 
 \subsection{Porównanie z najlepszymi znanymi rozwiązaniami (BKS)}
 
-Oficjalne wartości BKS dla benchmarku Solomona (źródło: SINTEF Top Results)
-wymagają \textbf{pełnej dopuszczalności} -- wszystkie okna czasowe muszą być
+\textbf{BKS} (\textit{Best Known Solution} -- najlepsze znane rozwiązanie) to
+najlepszy wynik uzyskany kiedykolwiek dla danej instancji benchmarkowej przez
+dowolny algorytm opisany w literaturze naukowej. Wartości BKS dla benchmarku
+Solomona publikowane są i aktualizowane przez SINTEF -- norweski instytut badań
+przemysłowych prowadzący oficjalny ranking wyników dla VRPTW
+(\textit{sintef.no/top/vrptw}).
+
+Wartości BKS wymagają \textbf{pełnej dopuszczalności} -- wszystkie okna czasowe muszą być
 spełnione bez naruszeń. W niniejszej implementacji zastosowano miękkie ograniczenia
 z małą karą ($\texttt{LATE\_ARRIVAL\_PENALTY} = 0{,}01$), co pozwala algorytmowi
 na naruszanie okien czasowych kosztem minimalnej kary.
