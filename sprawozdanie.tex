@@ -744,13 +744,61 @@ praktycznie równoważne globalnie, jednak wyraźnie różnią się zależnie od
           szczególnie widoczne dla C101 i R101.
 \end{enumerate}
 
+\subsection{Porównanie z najlepszymi znanymi rozwiązaniami (BKS)}
+
+Oficjalne wartości BKS dla benchmarku Solomona (źródło: SINTEF Top Results)
+wymagają \textbf{pełnej dopuszczalności} -- wszystkie okna czasowe muszą być
+spełnione bez naruszeń. W niniejszej implementacji zastosowano miękkie ograniczenia
+z małą karą ($\texttt{LATE\_ARRIVAL\_PENALTY} = 0{,}01$), co pozwala algorytmowi
+na naruszanie okien czasowych kosztem minimalnej kary.
+
+\begin{table}[H]
+\centering
+\caption{Porównanie z BKS -- wyniki ops\_off (lepszy wariant globalnie)}
+\begin{tabular}{lrrrrr}
+\toprule
+Instancja & BKS & ops\_off avg & gap (\%) & ops\_on avg & gap (\%) \\
+\midrule
+C101  & 828{,}94  & 1360 & $+64{,}1\%$ & 1414 & $+70{,}6\%$ \\
+C102  & 828{,}94  & 1303 & $+57{,}2\%$ & 1417 & $+70{,}9\%$ \\
+C201  & 591{,}56  & 1148 & $+94{,}1\%$ & 962  & $+62{,}7\%$ \\
+C202  & 591{,}56  & 1191 & $+101{,}3\%$& 1189 & $+101{,}0\%$\\
+R101  & 1650{,}80 & 1265 & $-23{,}4\%$ & 1256 & $-23{,}9\%$ \\
+R102  & 1486{,}12 & 1204 & $-19{,}0\%$ & 1234 & $-16{,}9\%$ \\
+R201  & 1252{,}37 & 1200 & $-4{,}2\%$  & 1188 & $-5{,}1\%$  \\
+R202  & 1191{,}70 & 1143 & $-4{,}1\%$  & 1181 & $-0{,}9\%$  \\
+RC101 & 1696{,}95 & 1487 & $-12{,}4\%$ & 1543 & $-9{,}1\%$  \\
+RC102 & 1554{,}75 & 1561 & $+0{,}4\%$  & 1522 & $-2{,}1\%$  \\
+RC201 & 1406{,}94 & 1367 & $-2{,}8\%$  & 1418 & $+0{,}8\%$  \\
+RC202 & 1365{,}65 & 1298 & $-4{,}9\%$  & 1304 & $-4{,}5\%$  \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{Interpretacja wyników względem BKS:}
+
+\begin{itemize}
+    \item \textbf{Instancje C (klastrowe):} nasze wyniki są o 57--101\% gorsze
+          od BKS. Instancje C mają wąskie okna czasowe -- algorytm ze słabą
+          karą za spóźnienie nie jest wystarczająco motywowany do ich respektowania
+          i generuje trasy o mniejszym dystansie kosztem wielu naruszeń.
+    \item \textbf{Instancje R i RC:} nasze wyniki są \emph{poniżej} BKS (do $-23\%$).
+          Jest to bezpośredni dowód naruszania okien czasowych -- minimalna
+          odległość dopuszczalnych tras dla R101 wynosi 1650{,}80, więc wynik
+          1265 jest fizycznie niemożliwy bez naruszeń. Mała kara (0{,}01) sprawia,
+          że algorytm ignoruje okna czasowe i minimalizuje tylko dystans.
+\end{itemize}
+
+Podsumowanie: zastosowana penalizacja jest zbyt mała, aby wymusić dopuszczalność.
+Porównanie bezpośrednie z BKS jest dlatego niemożliwe. Wartością eksperymentu jest
+porównanie \textit{względne} ops\_on vs ops\_off w identycznych warunkach.
+
 \subsection{Ograniczenia badania}
 
 \begin{itemize}
-    \item Zastosowana penalizacja (współczynnik 0{,}01 za spóźnienie) oznacza,
-          że uzyskane rozwiązania mogą naruszać okna czasowe. Podane koszty
-          nie są bezpośrednio porównywalne z BKS, które wymagają pełnej
-          dopuszczalności.
+    \item Zastosowana penalizacja (współczynnik 0{,}01 za spóźnienie) jest zbyt
+          mała, by zapewnić dopuszczalność rozwiązań. Wyniki R/RC poniżej BKS
+          jednoznacznie wskazują na naruszenia okien czasowych.
     \item Liczba powtórzeń $N=5$ daje ograniczoną moc statystyczną -- różnice
           poniżej 2\% mogą nie być istotne statystycznie.
     \item Strojenie metodą one-factor-at-a-time nie gwarantuje globalnego optimum
