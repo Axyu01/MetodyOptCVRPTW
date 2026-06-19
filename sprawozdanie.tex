@@ -221,6 +221,34 @@ Przeprowadzono \textbf{dwa niezależne potoki strojenia}:
     \item \textbf{ops\_off}: EA bazowy bez operatorów niestandardowych -- 5 faz.
 \end{itemize}
 
+Każdy potok startuje z ustalonej \textbf{konfiguracji bazowej}, od której odchylany
+jest jeden parametr na raz. Konfiguracje bazowe obu potoków przedstawia tabela~\ref{tab:base}.
+
+\begin{table}[H]
+\centering
+\caption{Konfiguracje bazowe obu potoków strojenia}
+\label{tab:base}
+\begin{tabular}{lcc}
+\toprule
+Parametr & ops\_on (bazowa) & ops\_off (bazowa) \\
+\midrule
+\texttt{popSize}   & 50    & 50 \\
+Krzyżowanie        & OX    & OX \\
+\texttt{Xp}        & 75\%  & 75\% \\
+\texttt{Mp}        & 25\%  & 25\% \\
+\texttt{turSize}   & 2     & 2 \\
+Mutacja            & SWAP  & SWAP \\
+\texttt{elitesNum} & 1     & 1 \\
+\texttt{REPAIRp}   & 70\%  & 0\% \\
+\texttt{OPTp}      & 30\%  & 0\% \\
+\texttt{REDISTp}   & 80\%  & 0\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+W każdej fazie testowane są warianty różniące się \emph{tylko} strojonym parametrem;
+zwycięski wariant staje się nową bazą dla kolejnej fazy.
+
 Niezależne potoki zapewniają \textit{fair comparison}: każdy wariant dobiera
 swoje optymalne parametry, a nie tylko parametry dopasowane do drugiego.
 
